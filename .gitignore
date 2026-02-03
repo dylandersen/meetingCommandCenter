@@ -1,0 +1,28 @@
+# Salesforce
+.sfdx/
+.localdevserver/
+.sf/
+**/*.log
+**/*.zip
+
+# LWC
+**/lwc/**/*.js-meta.xml.bak
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Node
+node_modules/
+npm-debug.log
+
+# Build
+.sfdx/
+dist/

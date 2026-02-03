@@ -1,0 +1,46 @@
+<template>
+  <div
+    class="record-link-wrapper"
+    onmouseenter={handleMouseEnter}
+    onmouseleave={handleMouseLeave}
+  >
+    <slot></slot>
+    <template if:true={showPopover}>
+      <div
+        class="record-popover"
+        style={popoverStyle}
+        role="tooltip"
+      >
+        <div class="popover-card">
+          <div class="popover-header">
+            <lightning-icon
+              icon-name={iconName}
+              size="small"
+              class="popover-icon"
+            ></lightning-icon>
+            <span class="popover-title">{objectApiName}</span>
+          </div>
+          <div class="popover-content">
+            <template if:true={hasFields}>
+              <div class="popover-fields">
+                <template for:each={recordFields} for:item="field">
+                  <div
+                    key={field.apiName}
+                    class="popover-field"
+                    data-field-type={field.fieldType}
+                  >
+                    <div class="field-label">{field.label}</div>
+                    <div class="field-value">{field.value}</div>
+                  </div>
+                </template>
+              </div>
+            </template>
+            <template if:false={hasFields}>
+              <div class="popover-loading">Loading record details...</div>
+            </template>
+          </div>
+        </div>
+      </div>
+    </template>
+  </div>
+</template>

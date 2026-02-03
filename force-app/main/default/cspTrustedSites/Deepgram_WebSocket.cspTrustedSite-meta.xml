@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CspTrustedSite xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description
+  >Deepgram WebSocket API for real-time speech transcription</description>
+    <endpointUrl>https://api.deepgram.com</endpointUrl>
+    <isActive>true</isActive>
+    <context>All</context>
+</CspTrustedSite>

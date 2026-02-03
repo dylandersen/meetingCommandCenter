@@ -1,0 +1,244 @@
+<template>
+  <section
+    role="dialog"
+    tabindex="-1"
+    aria-modal="true"
+    aria-labelledby="modal-heading"
+    class="slds-modal slds-fade-in-open slds-modal_medium modal-centered"
+  >
+    <div class="slds-modal__container">
+      <!-- Close Button -->
+      <button
+        class="slds-button slds-button_icon slds-button_icon-container slds-button_icon-small slds-modal__close"
+        title="Close"
+        onclick={handleClose}
+      >
+        <lightning-icon
+          icon-name="utility:close"
+          alternative-text="close"
+          size="small"
+        ></lightning-icon>
+        <span class="slds-assistive-text">Close</span>
+      </button>
+
+      <!-- Header -->
+      <header class="slds-modal__header">
+        <h2 id="modal-heading" class="slds-modal__title slds-hyphenate">
+          Recap Meeting
+        </h2>
+        <p class="slds-m-top_x-small slds-text-body_small slds-text-color_weak">
+          {eventSubject}
+        </p>
+      </header>
+
+      <!-- Body -->
+      <div class="slds-modal__content slds-p-around_medium" id="modal-content">
+        <template lwc:if={isProcessing}>
+          <div
+            class="slds-align_absolute-center slds-grid slds-grid_vertical slds-p-around_large"
+          >
+            <img
+              src={agentforceIcon}
+              alt="Agentforce"
+              class="agentforce-icon-pulse slds-m-bottom_medium"
+            />
+            <p class="slds-text-body_regular slds-text-color_weak">
+              {processingMessage}
+            </p>
+          </div>
+        </template>
+
+        <template lwc:else>
+          <!-- Instructions - Full Width -->
+          <div
+            class="info-callout-full-width slds-m-bottom_medium"
+            role="status"
+          >
+            <div class="slds-media">
+              <div class="slds-media__figure">
+                <lightning-icon
+                  icon-name="utility:info"
+                  size="small"
+                ></lightning-icon>
+              </div>
+              <div class="slds-media__body">
+                <p class="slds-text-body_small">
+                  Type or speak your meeting notes. Agentforce will summarize
+                  them for you.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Account Prep Info -->
+          <template lwc:if={accountInfo}>
+            <div class="slds-box slds-box_x-small slds-m-bottom_medium">
+              <div class="slds-grid slds-grid_vertical slds-gutters_small">
+                <!-- Account and Contact Info -->
+                <div
+                  class="slds-col account-contact-group slds-m-bottom_x-small"
+                >
+                  <!-- Account - Always shown -->
+                  <template lwc:if={accountInfo.accountName}>
+                    <div class="account-contact-item">
+                      <div class="slds-text-body_small slds-text-color_weak">
+                        Account
+                      </div>
+                      <a
+                        href="javascript:void(0)"
+                        class="slds-text-heading_small account-link"
+                        onclick={handleAccountClick}
+                      >
+                        {accountInfo.accountName}
+                      </a>
+                    </div>
+                  </template>
+                  <!-- Contact - Always shown -->
+                  <template lwc:if={accountInfo.contactName}>
+                    <div class="account-contact-item">
+                      <div class="slds-text-body_small slds-text-color_weak">
+                        Contact
+                      </div>
+                      <a
+                        href="javascript:void(0)"
+                        class="slds-text-heading_small contact-link"
+                        onclick={handleContactClick}
+                      >
+                        {accountInfo.contactName}
+                      </a>
+                    </div>
+                  </template>
+                  <!-- Event Name - Always shown -->
+                  <template lwc:if={eventSubject}>
+                    <div class="account-contact-item">
+                      <div class="slds-text-body_small slds-text-color_weak">
+                        Event Name
+                      </div>
+                      <a
+                        href="javascript:void(0)"
+                        class="slds-text-heading_small event-link"
+                        onclick={handleEventClick}
+                      >
+                        {eventSubject}
+                      </a>
+                    </div>
+                  </template>
+                </div>
+
+                <!-- AI Summary Section -->
+                <div class="slds-col slds-m-top_small">
+                  <div
+                    class="slds-text-body_small slds-text-color_weak slds-m-bottom_xx-small summary-label-container"
+                  >
+                    <lightning-icon
+                      icon-name="utility:sparkles"
+                      size="xx-small"
+                      class="slds-m-right_xx-small"
+                    ></lightning-icon>
+                    <span class={summaryLabelClass}>{summaryLabelText}</span>
+                  </div>
+                  <template lwc:if={accountInfo.accountSummary}>
+                    <div class="slds-text-body_regular account-summary">
+                      {accountInfo.accountSummary}
+                    </div>
+                  </template>
+                </div>
+              </div>
+            </div>
+          </template>
+
+          <!-- Text Input -->
+          <div class="slds-form-element slds-m-bottom_medium">
+            <label class="slds-form-element__label" for="recap-notes">
+              <abbr class="slds-required" title="required">*</abbr> Meeting
+              Notes
+            </label>
+            <div class="slds-form-element__control">
+              <textarea
+                id="recap-notes"
+                class="slds-textarea"
+                placeholder="What happened? Key decisions? Next steps?"
+                value={recapText}
+                oninput={handleTextChange}
+                maxlength="4000"
+                aria-describedby="char-counter"
+              ></textarea>
+              <div
+                class="slds-form-element__help slds-text-align_right"
+                id="char-counter"
+              >
+                {charCount} / 4000
+              </div>
+            </div>
+          </div>
+
+          <!-- Voice Input Section -->
+          <div class="slds-m-bottom_medium">
+            <div class="voice-input-wrapper">
+              <lightning-button
+                variant={voiceButtonVariant}
+                label={voiceButtonLabel}
+                icon-name={voiceButtonIcon}
+                onclick={toggleVoiceRecording}
+                class="voice-recording-button"
+                disabled={isButtonDisabled}
+              ></lightning-button>
+              <template lwc:if={isRecording}>
+                <div class="waveform-container">
+                  <span class="waveform-bar"></span>
+                  <span class="waveform-bar"></span>
+                  <span class="waveform-bar"></span>
+                  <span class="waveform-bar"></span>
+                  <span class="waveform-bar"></span>
+                  <span class="waveform-bar"></span>
+                  <span class="waveform-bar"></span>
+                </div>
+              </template>
+              <template lwc:if={isTranscribing}>
+                <div
+                  class="slds-grid slds-grid_vertical-align-center slds-m-top_small"
+                >
+                  <img
+                    src={agentforceIcon}
+                    alt="Agentforce"
+                    class="agentforce-loading-icon slds-m-right_small"
+                  />
+                  <span class="slds-text-body_small slds-text-color_weak"
+                    >Transcribing...</span
+                  >
+                </div>
+              </template>
+            </div>
+            <template lwc:if={voiceError}>
+              <div
+                class="slds-text-color_error slds-text-body_small slds-m-top_x-small"
+                role="alert"
+              >
+                {voiceError}
+              </div>
+            </template>
+          </div>
+        </template>
+      </div>
+
+      <!-- Footer -->
+      <footer class="slds-modal__footer">
+        <lightning-button
+          variant="neutral"
+          label="Cancel"
+          onclick={handleClose}
+          disabled={isProcessing}
+          class="slds-m-right_small"
+        ></lightning-button>
+        <lightning-button
+          variant="brand"
+          label="Save & Summarize"
+          icon-name="utility:sparkles"
+          onclick={handleSave}
+          disabled={isSaveDisabled}
+        ></lightning-button>
+      </footer>
+    </div>
+  </section>
+  <div class="slds-backdrop slds-backdrop_open"></div>
+</template>

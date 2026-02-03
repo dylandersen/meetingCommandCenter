@@ -1,0 +1,122 @@
+.record-link-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.record-popover {
+  position: fixed;
+  z-index: 10000;
+  min-width: 300px;
+  max-width: 400px;
+  pointer-events: none;
+  animation: fadeIn 0.2s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.popover-card {
+  background-color: var(--slds-g-color-neutral-base-100, #ffffff);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border: 1px solid var(--slds-g-color-border-base-4, #e5e5e5);
+  border-radius: var(--slds-c-card-radius-border, 0.5rem);
+  overflow: hidden;
+}
+
+.popover-header {
+  display: flex;
+  align-items: center;
+  gap: var(--slds-spacing-xx-small, 0.25rem);
+  padding: var(--slds-spacing-x-small, 0.5rem) var(--slds-spacing-small, 0.75rem);
+  background: linear-gradient(
+    135deg,
+    var(--slds-g-color-neutral-base-98, #fafaf9) 0%,
+    var(--slds-g-color-neutral-base-95, #f3f3f3) 100%
+  );
+  border-bottom: 1px solid var(--slds-g-color-border-base-4, #e5e5e5);
+}
+
+.popover-icon {
+  --slds-c-icon-color-foreground-default: var(
+    --slds-g-color-brand-base-50,
+    #0176d3
+  );
+}
+
+.popover-title {
+  font-weight: 600;
+  font-size: 0.75rem;
+  color: var(--slds-g-color-neutral-base-10, #181818);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.popover-content {
+  padding: var(--slds-spacing-small, 0.75rem);
+  background-color: var(--slds-g-color-neutral-base-100, #ffffff);
+  min-height: 60px;
+}
+
+.popover-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.popover-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--slds-spacing-xx-small, 0.25rem);
+  padding: var(--slds-spacing-x-small, 0.5rem) 0;
+  border-bottom: 1px solid var(--slds-g-color-border-base-4, #e5e5e5);
+}
+
+.popover-field:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.field-label {
+  font-size: 0.6875rem;
+  color: var(--slds-g-color-neutral-base-50, #706e6b);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+  margin-bottom: 0;
+  line-height: 1.2;
+}
+
+.field-value {
+  font-size: 0.8125rem;
+  color: var(--slds-g-color-neutral-base-10, #181818);
+  font-weight: 400;
+  word-wrap: break-word;
+  line-height: 1.4;
+}
+
+/* Special styling for email and phone values */
+.popover-field[data-field-type="email"] .field-value {
+  color: var(--slds-g-color-brand-base-50, #0176d3);
+  font-weight: 400;
+}
+
+.popover-field[data-field-type="phone"] .field-value {
+  color: var(--slds-g-color-neutral-base-10, #181818);
+  font-weight: 400;
+  letter-spacing: 0.3px;
+}
+
+.popover-loading {
+  padding: var(--slds-spacing-small, 0.75rem);
+  text-align: center;
+  color: var(--slds-g-color-neutral-base-50, #706e6b);
+  font-size: 0.8125rem;
+}
