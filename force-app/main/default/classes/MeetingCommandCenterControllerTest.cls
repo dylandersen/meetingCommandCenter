@@ -64,24 +64,28 @@ public class MeetingCommandCenterControllerTest {
   @isTest
   static void testGetTodaysEvents() {
     Test.startTest();
-    List<Event> events = MeetingCommandCenterController.getTodaysEvents();
+    List<Event> events = MeetingCommandCenterController.getTodaysEvents(null);
     Test.stopTest();
 
     // Should return 2-3 events for today (depends on timing of test execution)
     System.assert(events.size() >= 2 && events.size() <= 3, 'Should return 2-3 events for today, got: ' + events.size());
     
     // Verify events are ordered by StartDateTime
-    for (Integer i = 0; i < events.size() - 1; i++) {
-      System.assert(
-        events[i].StartDateTime <= events[i + 1].StartDateTime,
-        'Events should be ordered by StartDateTime'
-      );
+    if (events.size() > 1) {
+      for (Integer i = 0; i < events.size() - 1; i++) {
+        System.assert(
+          events[i].StartDateTime <= events[i + 1].StartDateTime,
+          'Events should be ordered by StartDateTime'
+        );
+      }
     }
 
     // Verify related data is queried
-    Event firstEvent = events[0];
-    System.assertNotEquals(null, firstEvent.Subject, 'Subject should be populated');
-    System.assertNotEquals(null, firstEvent.DurationInMinutes, 'Duration should be populated');
+    if (events.size() > 0) {
+      Event firstEvent = events[0];
+      System.assertNotEquals(null, firstEvent.Subject, 'Subject should be populated');
+      System.assertNotEquals(null, firstEvent.DurationInMinutes, 'Duration should be populated');
+    }
   }
 
   @isTest
@@ -90,7 +94,7 @@ public class MeetingCommandCenterControllerTest {
     delete [SELECT Id FROM Event];
 
     Test.startTest();
-    List<Event> events = MeetingCommandCenterController.getTodaysEvents();
+    List<Event> events = MeetingCommandCenterController.getTodaysEvents(null);
     Test.stopTest();
 
     System.assertEquals(0, events.size(), 'Should return 0 events when none exist');
@@ -167,26 +171,30 @@ public class MeetingCommandCenterControllerTest {
   @isTest
   static void testGetTodaysEvents_VerifyFieldsReturned() {
     Test.startTest();
-    List<Event> events = MeetingCommandCenterController.getTodaysEvents();
+    List<Event> events = MeetingCommandCenterController.getTodaysEvents(null);
     Test.stopTest();
 
-    // Verify custom fields are included in query
-    Event evt = events[0];
-    // These fields should be queryable (may be null, but shouldn't throw)
-    Object summary = evt.AI_Meeting_Summary__c;
-    Object outcomes = evt.AI_Key_Outcomes__c;
-    Object steps = evt.AI_Next_Steps__c;
-    Object recapCompleted = evt.Recap_Completed__c;
+    // Verify events are returned
+    System.assert(events.size() > 0, 'Should have at least one event');
     
-    // Just verify they're accessible
-    System.assertEquals(false, evt.Recap_Completed__c, 'Recap should not be completed initially');
+    if (events.size() > 0) {
+      Event evt = events[0];
+      
+      // Verify Recap_Completed__c is accessible (set dynamically by controller)
+      Object recapCompleted = evt.get('Recap_Completed__c');
+      System.assertNotEquals(null, recapCompleted, 'Recap_Completed__c should be set');
+      System.assertEquals(false, recapCompleted, 'Recap should not be completed initially');
+    }
   }
 
   @isTest
   static void testGetTodaysEvents_VerifyRelatedData() {
     Test.startTest();
-    List<Event> events = MeetingCommandCenterController.getTodaysEvents();
+    List<Event> events = MeetingCommandCenterController.getTodaysEvents(null);
     Test.stopTest();
+
+    // Verify events are returned
+    System.assert(events.size() > 0, 'Should have at least one event');
 
     // Find an event with related account
     Event eventWithAccount = null;

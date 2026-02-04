@@ -84,8 +84,12 @@ sf apex run test --class-names MeetingCommandCenterControllerTest --result-forma
 
 ## License
 
-[Add your license information here]
+This project is open source and free to use. See LICENSE file for details.
 
 ## Support
 
-[Add support information here]
+**No support is provided for this project.**
+
+For non-support requests, please contact Dylan Andersen at dylan.andersen@salesforce.com.
+
+**Author:** Dylan Andersen, Senior Solution Engineer, Agentforce at Salesforce
