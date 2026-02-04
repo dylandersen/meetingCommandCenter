@@ -37,7 +37,10 @@ See [MEETING_COMMAND_CENTER_DEPENDENCIES.md](./MEETING_COMMAND_CENTER_DEPENDENCI
 
 ## Installation
 
-1. Clone this repository
+1. Clone this repository:
+   ```bash
+   git clone https://github.com/dylandersen/meetingCommandCenter.git
+   ```
 2. Deploy to your Salesforce org using Salesforce CLI:
    ```bash
    sf project deploy start --source-dir force-app
