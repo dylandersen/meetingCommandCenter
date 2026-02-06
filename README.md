@@ -27,8 +27,6 @@ The Meeting Command Center provides a comprehensive dashboard for viewing daily 
 
 ## Dependencies
 
-See [MEETING_COMMAND_CENTER_DEPENDENCIES.md](./MEETING_COMMAND_CENTER_DEPENDENCIES.md) for a complete list of all dependencies.
-
 ### Key Dependencies
 - **Custom Objects**: `Meeting_Recap__c`, `Meeting_Prep__c`
 - **Custom Metadata**: 
