@@ -1,0 +1,5 @@
+{
+  "title": "Meeting Prep Output",
+  "description": "Meeting prep brief result",
+  "lightning:type": "@apexClassType/c__MeetingPrepOutput"
+}

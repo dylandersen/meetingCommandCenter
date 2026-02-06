@@ -31,11 +31,32 @@ See [MEETING_COMMAND_CENTER_DEPENDENCIES.md](./MEETING_COMMAND_CENTER_DEPENDENCI
 
 ### Key Dependencies
 - **Custom Objects**: `Meeting_Recap__c`, `Meeting_Prep__c`
-- **Custom Metadata**: `Deepgram_API_Config__mdt` (optional, for voice transcription)
+- **Custom Metadata**: 
+  - `Tavily_API_Config__mdt` (REQUIRED, for competitive intelligence)
+  - `Deepgram_API_Config__mdt` (REQUIRED, for voice transcription)
 - **Static Resources**: `AgentforceRGBIcon`
 - **Salesforce AI Platform**: Einstein Generative AI (Models API)
+- **External APIs**: Tavily API and Deepgram API (both offer free tiers)
 
 ## Installation
+
+### Prerequisites
+
+**REQUIRED: Free API Keys**
+
+Before deploying, you **MUST** obtain free API keys from two services:
+
+1. **Tavily API** (for competitive intelligence)
+   - Sign up at https://tavily.com/ (free, no credit card required)
+   - Get your API key from the dashboard
+
+2. **Deepgram API** (for voice transcription)
+   - Sign up at https://www.deepgram.com/ (free, no credit card required)
+   - Get your API key from the dashboard
+
+Both services offer generous free tiers perfect for development and testing.
+
+### Deployment Steps
 
 1. Clone this repository:
    ```bash
@@ -45,7 +66,10 @@ See [MEETING_COMMAND_CENTER_DEPENDENCIES.md](./MEETING_COMMAND_CENTER_DEPENDENCI
    ```bash
    sf project deploy start --source-dir force-app
    ```
-3. Configure Deepgram API key (optional) in Custom Metadata Type `Deepgram_API_Config__mdt`
+3. **Configure API Keys** (REQUIRED):
+   - Follow the detailed setup instructions in [DEEPGRAM_SETUP.md](./DEEPGRAM_SETUP.md)
+   - Configure Tavily API key in Custom Metadata Type `Tavily_API_Config__mdt`
+   - Configure Deepgram API key in Custom Metadata Type `Deepgram_API_Config__mdt`
 4. Assign permission set `Meeting_Recap_All_Fields` to users who need access
 5. Ensure Einstein Generative AI is enabled in your org
 
@@ -69,11 +93,21 @@ See [MEETING_COMMAND_CENTER_DEPENDENCIES.md](./MEETING_COMMAND_CENTER_DEPENDENCI
 
 ## Configuration
 
-### Deepgram API (Optional)
-To enable voice transcription:
-1. Create a Custom Metadata Type record for `Deepgram_API_Config__mdt`
-2. Set the Developer Name to "Default"
-3. Add your Deepgram API key to the `API_Key__c` field
+### API Keys Setup (REQUIRED)
+
+**Both Tavily and Deepgram API keys are REQUIRED** for full functionality:
+
+- **Tavily API**: Powers competitive intelligence in meeting preparation
+- **Deepgram API**: Enables voice transcription for meeting recaps
+
+See [DEEPGRAM_SETUP.md](./DEEPGRAM_SETUP.md) for detailed setup instructions. Both services offer free API keys that you can obtain in minutes.
+
+**Quick Setup:**
+1. Get free Tavily API key from https://tavily.com/
+2. Get free Deepgram API key from https://www.deepgram.com/
+3. Update Custom Metadata records:
+   - `Tavily_API_Config__mdt.Default` → Add your Tavily API key
+   - `Deepgram_API_Config__mdt.Default` → Add your Deepgram API key
 
 ### Einstein Generative AI
 Ensure Einstein Generative AI is enabled in your org. The component uses the `sfdc_ai__DefaultOpenAIGPT4Omni` model.

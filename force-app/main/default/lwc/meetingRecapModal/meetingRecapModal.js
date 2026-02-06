@@ -231,9 +231,22 @@ export default class MeetingRecapModal extends NavigationMixin(
     try {
       // Combine all audio chunks into a single blob
       const audioBlob = new Blob(this.audioChunks, { type: "audio/webm" });
+      
+      if (!audioBlob || audioBlob.size === 0) {
+        throw new Error("No audio data recorded. Please try recording again.");
+      }
 
       // Convert blob to base64
-      const base64Audio = await this.blobToBase64(audioBlob);
+      let base64Audio;
+      try {
+        base64Audio = await this.blobToBase64(audioBlob);
+        if (!base64Audio || base64Audio.trim().length === 0) {
+          throw new Error("Failed to encode audio data.");
+        }
+      } catch (encodeError) {
+        console.error("Error encoding audio:", encodeError);
+        throw new Error("Failed to process audio recording. Please try again.");
+      }
 
       // Clear chunks after processing
       this.audioChunks = [];
@@ -266,11 +279,26 @@ export default class MeetingRecapModal extends NavigationMixin(
       }
     } catch (error) {
       console.error("Error transcribing recording:", error);
-      if (error.body && error.body.message) {
-        this.voiceError = "Transcription error: " + error.body.message;
-      } else {
-        this.voiceError = "Failed to transcribe recording. Please try again.";
+      let errorMessage = "Failed to transcribe recording. Please try again.";
+      
+      if (error.body) {
+        if (error.body.message) {
+          // Use the error message from Apex (it already includes "Transcription error:" prefix if needed)
+          errorMessage = error.body.message;
+        } else if (error.body.pageErrors && error.body.pageErrors.length > 0) {
+          errorMessage = error.body.pageErrors[0].message;
+        } else if (error.body.fieldErrors) {
+          // Handle field errors if any
+          const fieldErrors = Object.values(error.body.fieldErrors);
+          if (fieldErrors.length > 0 && fieldErrors[0].length > 0) {
+            errorMessage = fieldErrors[0][0].message;
+          }
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
       }
+      
+      this.voiceError = errorMessage;
     } finally {
       this.isTranscribing = false;
     }
@@ -281,14 +309,42 @@ export default class MeetingRecapModal extends NavigationMixin(
    */
   blobToBase64(blob) {
     return new Promise((resolve, reject) => {
+      if (!blob) {
+        reject(new Error("Invalid blob data"));
+        return;
+      }
+      
       const reader = new FileReader();
       reader.onloadend = () => {
-        // Remove data URL prefix (data:audio/webm;base64,)
-        const base64 = reader.result.split(",")[1];
-        resolve(base64);
+        try {
+          if (!reader.result) {
+            reject(new Error("Failed to read blob data"));
+            return;
+          }
+          // Remove data URL prefix (data:audio/webm;base64,)
+          const parts = reader.result.split(",");
+          if (parts.length < 2) {
+            reject(new Error("Invalid data URL format"));
+            return;
+          }
+          const base64 = parts[1];
+          if (!base64 || base64.trim().length === 0) {
+            reject(new Error("Empty base64 data"));
+            return;
+          }
+          resolve(base64);
+        } catch (error) {
+          reject(new Error("Error processing blob: " + error.message));
+        }
       };
-      reader.onerror = reject;
-      reader.readAsDataURL(blob);
+      reader.onerror = (error) => {
+        reject(new Error("FileReader error: " + (error.message || "Unknown error")));
+      };
+      try {
+        reader.readAsDataURL(blob);
+      } catch (error) {
+        reject(new Error("Error reading blob: " + error.message));
+      }
     });
   }
 

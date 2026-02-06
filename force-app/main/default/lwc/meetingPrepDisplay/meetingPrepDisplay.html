@@ -1,0 +1,194 @@
+<template>
+  <lightning-card>
+    <div slot="title">
+      <div class="slds-media">
+        <div class="slds-media__figure">
+          <div class="header-icon-container">
+            <lightning-icon
+              icon-name="utility:task"
+              size="small"
+              class="header-icon"
+            ></lightning-icon>
+          </div>
+        </div>
+        <div class="slds-media__body">
+          <h2 class="slds-text-heading_small">Meeting Prep Details</h2>
+        </div>
+      </div>
+    </div>
+
+    <div class="slds-p-around_medium">
+      <!-- Error State -->
+      <template if:true={errorMessage}>
+        <div class="slds-m-bottom_medium">
+          <div class="error-box">
+            <lightning-icon
+              icon-name="utility:error"
+              size="small"
+              variant="error"
+            ></lightning-icon>
+            <span class="error-message">{errorMessage}</span>
+          </div>
+        </div>
+      </template>
+
+      <!-- Loading State -->
+      <template if:false={recordLoaded}>
+        <div class="slds-text-align_center slds-m-vertical_large">
+          <lightning-spinner
+            alternative-text="Loading meeting prep..."
+            size="medium"
+          ></lightning-spinner>
+          <p
+            class="slds-text-body_regular slds-m-top_medium slds-text-color_weak"
+          >
+            Loading meeting prep content...
+          </p>
+        </div>
+      </template>
+
+      <!-- Empty State -->
+      <template if:true={recordLoaded}>
+        <template if:false={hasAnyContent}>
+          <div class="slds-text-align_center slds-m-vertical_large">
+            <lightning-icon
+              icon-name="utility:info"
+              size="large"
+              variant="default"
+              class="slds-m-bottom_medium"
+            ></lightning-icon>
+            <h3 class="slds-text-heading_medium slds-m-bottom_x-small">
+              No Prep Content Available
+            </h3>
+            <p class="slds-text-body_regular slds-text-color_weak">
+              This meeting prep record doesn't have any content yet. Generate a
+              prep brief from the Event record to populate this content.
+            </p>
+          </div>
+        </template>
+      </template>
+
+      <!-- Prep Brief HTML -->
+      <template if:true={hasPrepBrief}>
+        <div class="content-section slds-m-bottom_medium">
+          <h3 class="section-title">
+            <lightning-icon
+              icon-name="utility:task"
+              size="x-small"
+            ></lightning-icon>
+            Prep Brief
+          </h3>
+          <div class="content-body">
+            <lightning-formatted-rich-text
+              value={prepBriefHTML}
+            ></lightning-formatted-rich-text>
+          </div>
+        </div>
+      </template>
+
+      <!-- Competitive Intelligence -->
+      <template if:true={hasCompetitiveIntelligence}>
+        <div class="content-section slds-m-bottom_medium">
+          <h3 class="section-title">
+            <lightning-icon
+              icon-name="utility:search"
+              size="x-small"
+            ></lightning-icon>
+            Competitive Intelligence
+          </h3>
+          <div class="content-body">
+            <div class="competitive-intel-content" lwc:dom="manual"></div>
+          </div>
+        </div>
+      </template>
+
+      <!-- Attendee Summary -->
+      <template if:true={hasAttendeeSummary}>
+        <div class="content-section slds-m-bottom_medium">
+          <h3 class="section-title">
+            <lightning-icon
+              icon-name="utility:user"
+              size="x-small"
+            ></lightning-icon>
+            Attendee Summary
+          </h3>
+          <div class="content-body">
+            <div class="attendee-summary-content" lwc:dom="manual"></div>
+          </div>
+        </div>
+      </template>
+
+      <!-- Key Talking Points -->
+      <template if:true={hasKeyTalkingPoints}>
+        <div class="content-section slds-m-bottom_medium">
+          <h3 class="section-title">
+            <lightning-icon
+              icon-name="utility:summary"
+              size="x-small"
+            ></lightning-icon>
+            Key Talking Points
+          </h3>
+          <div class="content-body">
+            <lightning-formatted-rich-text
+              value={keyTalkingPoints}
+            ></lightning-formatted-rich-text>
+          </div>
+        </div>
+      </template>
+
+      <!-- Recent Updates -->
+      <template if:true={hasRecentUpdates}>
+        <div class="content-section slds-m-bottom_medium">
+          <h3 class="section-title">
+            <lightning-icon
+              icon-name="utility:update"
+              size="x-small"
+            ></lightning-icon>
+            Recent Updates
+          </h3>
+          <div class="content-body">
+            <lightning-formatted-rich-text
+              value={recentUpdates}
+            ></lightning-formatted-rich-text>
+          </div>
+        </div>
+      </template>
+
+      <!-- Questions To Ask -->
+      <template if:true={hasQuestionsToAsk}>
+        <div class="content-section slds-m-bottom_medium">
+          <h3 class="section-title">
+            <lightning-icon
+              icon-name="utility:question"
+              size="x-small"
+            ></lightning-icon>
+            Questions To Ask
+          </h3>
+          <div class="content-body">
+            <lightning-formatted-rich-text
+              value={questionsToAsk}
+            ></lightning-formatted-rich-text>
+          </div>
+        </div>
+      </template>
+
+      <!-- Potential Objections -->
+      <template if:true={hasPotentialObjections}>
+        <div class="content-section slds-m-bottom_medium">
+          <h3 class="section-title">
+            <lightning-icon
+              icon-name="utility:warning"
+              size="x-small"
+            ></lightning-icon>
+            Potential Objections
+          </h3>
+          <div class="content-body">
+            <lightning-formatted-rich-text
+              value={potentialObjections}
+            ></lightning-formatted-rich-text>
+          </div>
+        </div>
+      </template>
+    </div>
+  </lightning-card>
+</template>
