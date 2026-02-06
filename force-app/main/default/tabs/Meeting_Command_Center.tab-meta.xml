@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <CustomTab xmlns="http://soap.sforce.com/2006/04/metadata">
-    <flexiPage>Meeting_Command_Center_App</flexiPage>
+    <flexiPage>Meeting_Command_Center</flexiPage>
     <label>Meeting Command Center</label>
     <motif>Custom24: Building</motif>
 </CustomTab>

@@ -1,0 +1,95 @@
+<template>
+  <lightning-card
+    class="meeting-prep-result"
+    icon-name="standard:event"
+    title="Meeting Prep Brief"
+  >
+    <div class="slds-p-around_medium">
+      <template if:true={hasSuccess}>
+        <!-- Success Header -->
+        <div class="slds-m-bottom_medium">
+          <div class="result-header success">
+            <lightning-icon
+              icon-name="utility:success"
+              size="small"
+              variant="success"
+            ></lightning-icon>
+            <span class="slds-text-heading_small">Meeting Prep Ready!</span>
+          </div>
+        </div>
+
+        <!-- Meeting Overview -->
+        <div class="slds-card__body slds-card__body_inner slds-m-bottom_medium">
+          <h3 class="slds-text-heading_small slds-m-bottom_small">
+            <lightning-icon
+              icon-name="standard:event"
+              size="x-small"
+              class="slds-m-right_x-small"
+            ></lightning-icon>
+            Meeting Details
+          </h3>
+          <div class="detail-row">
+            <span class="detail-label">Subject:</span>
+            <span class="detail-value">{displayData.eventSubject}</span>
+          </div>
+          <div class="detail-row" if:true={displayData.eventDateTime}>
+            <span class="detail-label">Date/Time:</span>
+            <span class="detail-value">{displayData.eventDateTime}</span>
+          </div>
+          <div class="detail-row" if:true={displayData.eventLocation}>
+            <span class="detail-label">Location:</span>
+            <span class="detail-value">{displayData.eventLocation}</span>
+          </div>
+        </div>
+
+        <!-- Prep Brief HTML -->
+        <div
+          class="slds-card__body slds-card__body_inner slds-m-bottom_medium prep-brief-container"
+        >
+          <lightning-formatted-rich-text
+            value={displayData.prepBriefHTML}
+          ></lightning-formatted-rich-text>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="slds-m-top_medium button-group">
+          <lightning-button
+            variant="brand"
+            label="View Event"
+            icon-name="utility:event"
+            onclick={navigateToEvent}
+            class="slds-m-right_small"
+          >
+          </lightning-button>
+          <lightning-button
+            variant="neutral"
+            label="View Prep Record"
+            icon-name="utility:open"
+            onclick={navigateToMeetingPrep}
+          >
+          </lightning-button>
+        </div>
+      </template>
+
+      <template if:true={hasError}>
+        <!-- Error State -->
+        <div class="slds-m-bottom_medium">
+          <div class="result-header error">
+            <lightning-icon
+              icon-name="utility:error"
+              size="small"
+              variant="error"
+            ></lightning-icon>
+            <span class="slds-text-heading_small">Generation Failed</span>
+          </div>
+        </div>
+
+        <div class="slds-card__body slds-card__body_inner">
+          <div class="result-message">
+            <span>{displayData.message}</span>
+          </div>
+        </div>
+      </template>
+    </div>
+  </lightning-card>
+</template>

@@ -1,0 +1,5 @@
+{
+  "title": "Meeting Prep Input",
+  "description": "Input configuration for meeting prep generation",
+  "lightning:type": "@apexClassType/c__MeetingPrepInput"
+}

@@ -8,6 +8,6 @@
     <protected>false</protected>
     <values>
         <field>API_Key__c</field>
-        <value xsi:type="xsd:string">REPLACE_ME_WITH_REAL_DEEPGRAM_API_KEY</value>
+        <value xsi:type="xsd:string">REPLACE_ME_WITH_REAL_TAVILY_API_KEY</value>
     </values>
 </CustomMetadata>

@@ -64,7 +64,7 @@ public class MeetingCommandCenterControllerTest {
   @isTest
   static void testGetTodaysEvents() {
     Test.startTest();
-    List<Event> events = MeetingCommandCenterController.getTodaysEvents(null);
+    List<Map<String, Object>> events = MeetingCommandCenterController.getTodaysEvents(null);
     Test.stopTest();
 
     // Should return 2-3 events for today (depends on timing of test execution)
@@ -73,8 +73,10 @@ public class MeetingCommandCenterControllerTest {
     // Verify events are ordered by StartDateTime
     if (events.size() > 1) {
       for (Integer i = 0; i < events.size() - 1; i++) {
+        DateTime start1 = (DateTime) events[i].get('StartDateTime');
+        DateTime start2 = (DateTime) events[i + 1].get('StartDateTime');
         System.assert(
-          events[i].StartDateTime <= events[i + 1].StartDateTime,
+          start1 <= start2,
           'Events should be ordered by StartDateTime'
         );
       }
@@ -82,9 +84,9 @@ public class MeetingCommandCenterControllerTest {
 
     // Verify related data is queried
     if (events.size() > 0) {
-      Event firstEvent = events[0];
-      System.assertNotEquals(null, firstEvent.Subject, 'Subject should be populated');
-      System.assertNotEquals(null, firstEvent.DurationInMinutes, 'Duration should be populated');
+      Map<String, Object> firstEvent = events[0];
+      System.assertNotEquals(null, firstEvent.get('Subject'), 'Subject should be populated');
+      System.assertNotEquals(null, firstEvent.get('DurationInMinutes'), 'Duration should be populated');
     }
   }
 
@@ -94,7 +96,7 @@ public class MeetingCommandCenterControllerTest {
     delete [SELECT Id FROM Event];
 
     Test.startTest();
-    List<Event> events = MeetingCommandCenterController.getTodaysEvents(null);
+    List<Map<String, Object>> events = MeetingCommandCenterController.getTodaysEvents(null);
     Test.stopTest();
 
     System.assertEquals(0, events.size(), 'Should return 0 events when none exist');
@@ -171,14 +173,14 @@ public class MeetingCommandCenterControllerTest {
   @isTest
   static void testGetTodaysEvents_VerifyFieldsReturned() {
     Test.startTest();
-    List<Event> events = MeetingCommandCenterController.getTodaysEvents(null);
+    List<Map<String, Object>> events = MeetingCommandCenterController.getTodaysEvents(null);
     Test.stopTest();
 
     // Verify events are returned
     System.assert(events.size() > 0, 'Should have at least one event');
     
     if (events.size() > 0) {
-      Event evt = events[0];
+      Map<String, Object> evt = events[0];
       
       // Verify Recap_Completed__c is accessible (set dynamically by controller)
       Object recapCompleted = evt.get('Recap_Completed__c');
@@ -190,23 +192,30 @@ public class MeetingCommandCenterControllerTest {
   @isTest
   static void testGetTodaysEvents_VerifyRelatedData() {
     Test.startTest();
-    List<Event> events = MeetingCommandCenterController.getTodaysEvents(null);
+    List<Map<String, Object>> events = MeetingCommandCenterController.getTodaysEvents(null);
     Test.stopTest();
 
     // Verify events are returned
     System.assert(events.size() > 0, 'Should have at least one event');
 
     // Find an event with related account
-    Event eventWithAccount = null;
-    for (Event evt : events) {
-      if (evt.WhatId != null) {
+    Map<String, Object> eventWithAccount = null;
+    for (Map<String, Object> evt : events) {
+      if (evt.get('WhatId') != null) {
         eventWithAccount = evt;
         break;
       }
     }
 
     System.assertNotEquals(null, eventWithAccount, 'Should have an event with WhatId');
-    System.assertNotEquals(null, eventWithAccount.What.Name, 'Should have related account name');
-    System.assertNotEquals(null, eventWithAccount.Who.Name, 'Should have related contact name');
+    
+    // Verify related data structure
+    Map<String, Object> whatData = (Map<String, Object>) eventWithAccount.get('What');
+    Map<String, Object> whoData = (Map<String, Object>) eventWithAccount.get('Who');
+    
+    System.assertNotEquals(null, whatData, 'Should have What data');
+    System.assertNotEquals(null, whatData.get('Name'), 'Should have related account name');
+    System.assertNotEquals(null, whoData, 'Should have Who data');
+    System.assertNotEquals(null, whoData.get('Name'), 'Should have related contact name');
   }
 }

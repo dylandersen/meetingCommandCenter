@@ -10,7 +10,7 @@ public with sharing class MeetingCommandCenterController {
    * @return List of Event records with related data
    */
   @AuraEnabled(cacheable=true)
-  public static List<Event> getTodaysEvents(String selectedDate) {
+  public static List<Map<String, Object>> getTodaysEvents(String selectedDate) {
     // Parse the selected date or use today
     Date targetDate;
     if (String.isNotBlank(selectedDate)) {
@@ -74,18 +74,21 @@ public with sharing class MeetingCommandCenterController {
       }
     }
 
-    // Add recap status to events (for backward compatibility with LWC)
+    // Convert events to Maps and add recap status
+    List<Map<String, Object>> eventMaps = new List<Map<String, Object>>();
     for (Event evt : events) {
       Meeting_Recap__c recap = recapMap.get(evt.Id);
-      // Set Recap_Completed__c based on recap existence
-      // This maintains compatibility with existing LWC logic
-      evt.put(
+      // Convert Event to Map
+      Map<String, Object> eventMap = (Map<String, Object>) JSON.deserializeUntyped(JSON.serialize(evt));
+      // Add Recap_Completed__c field
+      eventMap.put(
         'Recap_Completed__c',
         recap != null && recap.Recap_Completed__c == true
       );
+      eventMaps.add(eventMap);
     }
 
-    return events;
+    return eventMaps;
   }
 
   /**
@@ -504,15 +507,29 @@ public with sharing class MeetingCommandCenterController {
 
     try {
       // Get API key from Custom Metadata
-      Deepgram_API_Config__mdt config = Deepgram_API_Config__mdt.getInstance(
-        'Default'
-      );
+      Deepgram_API_Config__mdt config;
+      try {
+        config = Deepgram_API_Config__mdt.getInstance('Default');
+      } catch (Exception configEx) {
+        System.debug('Error getting config: ' + configEx.getMessage());
+        throw new AuraHandledException('Deepgram API configuration not found. Please configure the API key in Custom Metadata.');
+      }
+      
       if (config == null || String.isBlank(config.API_Key__c)) {
-        throw new AuraHandledException('Deepgram API key not configured');
+        throw new AuraHandledException('Deepgram API key is not configured. Please set the API key in Custom Metadata Type: Deepgram_API_Config__mdt');
       }
 
       // Decode base64 audio
-      Blob audioBlob = EncodingUtil.base64Decode(audioBase64);
+      Blob audioBlob;
+      try {
+        audioBlob = EncodingUtil.base64Decode(audioBase64);
+        if (audioBlob == null || audioBlob.size() == 0) {
+          throw new AuraHandledException('Invalid audio data: empty or corrupted');
+        }
+      } catch (Exception decodeEx) {
+        System.debug('Error decoding audio: ' + decodeEx.getMessage());
+        throw new AuraHandledException('Failed to decode audio data. Please try recording again.');
+      }
 
       // Build Deepgram API request
       HttpRequest req = new HttpRequest();
@@ -526,13 +543,26 @@ public with sharing class MeetingCommandCenterController {
       req.setTimeout(30000); // 30 second timeout
 
       Http http = new Http();
-      HttpResponse res = http.send(req);
+      HttpResponse res;
+      try {
+        res = http.send(req);
+      } catch (Exception httpEx) {
+        System.debug('HTTP callout error: ' + httpEx.getMessage());
+        throw new AuraHandledException('Failed to connect to Deepgram API. Please check your network connection and Remote Site Settings.');
+      }
 
       if (res.getStatusCode() == 200) {
         // Parse Deepgram response
-        Map<String, Object> responseData = (Map<String, Object>) JSON.deserializeUntyped(
-          res.getBody()
-        );
+        Map<String, Object> responseData;
+        try {
+          responseData = (Map<String, Object>) JSON.deserializeUntyped(
+            res.getBody()
+          );
+        } catch (Exception parseEx) {
+          System.debug('Error parsing response: ' + parseEx.getMessage());
+          System.debug('Response body: ' + res.getBody());
+          throw new AuraHandledException('Failed to parse transcription response from Deepgram API.');
+        }
 
         // Extract transcript from response
         String transcript = extractTranscript(responseData);
@@ -542,21 +572,40 @@ public with sharing class MeetingCommandCenterController {
         }
         return '';
       } else {
+        String errorBody = res.getBody();
         System.debug(
           'Deepgram API error: ' + res.getStatusCode() + ' - ' + res.getStatus()
         );
-        System.debug('Response body: ' + res.getBody());
-        throw new AuraHandledException(
-          'Deepgram API returned error: ' + res.getStatusCode()
-        );
+        System.debug('Response body: ' + errorBody);
+        
+        String errorMessage = 'Deepgram API returned error code ' + res.getStatusCode();
+        if (res.getStatusCode() == 401) {
+          errorMessage = 'Deepgram API authentication failed. Please check your API key.';
+        } else if (res.getStatusCode() == 400) {
+          errorMessage = 'Invalid request to Deepgram API. The audio format may not be supported.';
+        } else if (res.getStatusCode() >= 500) {
+          errorMessage = 'Deepgram API server error. Please try again later.';
+        }
+        throw new AuraHandledException(errorMessage);
       }
+    } catch (AuraHandledException e) {
+      // Re-throw AuraHandledException as-is
+      throw e;
     } catch (Exception e) {
+      String errorMsg = e.getMessage();
+      if (String.isBlank(errorMsg)) {
+        errorMsg = e.getTypeName();
+      }
+      if (String.isBlank(errorMsg)) {
+        errorMsg = 'Unknown error occurred during transcription';
+      }
       System.debug(
         LoggingLevel.ERROR,
-        'Error in transcribeAudioChunk: ' + e.getMessage()
+        'Error in transcribeAudioChunk: ' + errorMsg
       );
+      System.debug('Exception type: ' + e.getTypeName());
       System.debug('Stack trace: ' + e.getStackTraceString());
-      throw new AuraHandledException('Transcription error: ' + e.getMessage());
+      throw new AuraHandledException('Transcription error: ' + errorMsg);
     }
   }
 

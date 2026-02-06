@@ -1,0 +1,40 @@
+<template>
+  <lightning-card
+    class="meeting-prep-input"
+    icon-name="standard:event"
+    title="Meeting Prep Configuration"
+  >
+    <div class="slds-p-around_medium">
+      <!-- Event ID -->
+      <lightning-input
+        label="Event ID"
+        name="eventId"
+        value={eventId}
+        type="text"
+        required
+        onchange={handleEventChange}
+        read-only={readOnly}
+        placeholder="Enter Event ID (e.g., 00U...)"
+        class="slds-m-bottom_small"
+      >
+      </lightning-input>
+
+      <!-- Regenerate Checkbox -->
+      <lightning-input
+        label="Force Regenerate"
+        name="regenerate"
+        type="checkbox"
+        checked={regenerate}
+        onchange={handleRegenerateChange}
+        read-only={readOnly}
+        class="slds-m-bottom_small"
+      >
+      </lightning-input>
+
+      <div class="slds-text-body_small slds-text-color_weak">
+        Check "Force Regenerate" to create a new prep brief even if one already
+        exists for this event.
+      </div>
+    </div>
+  </lightning-card>
+</template>
