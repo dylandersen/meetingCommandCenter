@@ -60,16 +60,20 @@ Both services offer generous free tiers perfect for development and testing.
    ```bash
    git clone https://github.com/dylandersen/meetingCommandCenter.git
    ```
-2. Deploy to your Salesforce org using Salesforce CLI:
+2. **Get API Keys** (REQUIRED):
+   - Get free Tavily API key from https://tavily.com/
+   - Get free Deepgram API key from https://www.deepgram.com/
+   - See [DEEPGRAM_SETUP.md](./DEEPGRAM_SETUP.md) for detailed setup instructions
+3. Ensure Einstein Generative AI is enabled in your org
+4. Assign permission set `Meeting_Recap_All_Fields` to users who need access (after deployment)
+5. **Deploy to your Salesforce org** using Salesforce CLI:
    ```bash
    sf project deploy start --source-dir force-app
    ```
-3. **Configure API Keys** (REQUIRED):
-   - Follow the detailed setup instructions in [DEEPGRAM_SETUP.md](./DEEPGRAM_SETUP.md)
-   - Configure Tavily API key in Custom Metadata Type `Tavily_API_Config__mdt`
-   - Configure Deepgram API key in Custom Metadata Type `Deepgram_API_Config__mdt`
-4. Assign permission set `Meeting_Recap_All_Fields` to users who need access
-5. Ensure Einstein Generative AI is enabled in your org
+6. **Configure API Keys** (REQUIRED - after deployment):
+   - Update Custom Metadata records with your API keys:
+     - `Tavily_API_Config__mdt.Default` → Add your Tavily API key
+     - `Deepgram_API_Config__mdt.Default` → Add your Deepgram API key
 
 ## Deployment Order
 
