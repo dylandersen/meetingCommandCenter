@@ -74,6 +74,10 @@ Both services offer generous free tiers perfect for development and testing.
    - Update Custom Metadata records with your API keys:
      - `Tavily_API_Config__mdt.Default` → Add your Tavily API key
      - `Deepgram_API_Config__mdt.Default` → Add your Deepgram API key
+   - See [DEEPGRAM_SETUP.md](./DEEPGRAM_SETUP.md) for detailed setup instructions
+
+### Einstein Generative AI
+Ensure Einstein Generative AI is enabled in your org (step 3 above). The component uses the `sfdc_ai__DefaultOpenAIGPT4Omni` model.
 
 ## Deployment Order
 
@@ -92,27 +96,6 @@ Both services offer generous free tiers perfect for development and testing.
 3. Click "Recap Meeting" on past events to create AI-powered recaps
 4. Use "Prep for Meeting" on upcoming events to access meeting preparation
 5. View completed recaps by clicking "View Recap"
-
-## Configuration
-
-### API Keys Setup (REQUIRED)
-
-**Both Tavily and Deepgram API keys are REQUIRED** for full functionality:
-
-- **Tavily API**: Powers competitive intelligence in meeting preparation
-- **Deepgram API**: Enables voice transcription for meeting recaps
-
-See [DEEPGRAM_SETUP.md](./DEEPGRAM_SETUP.md) for detailed setup instructions. Both services offer free API keys that you can obtain in minutes.
-
-**Quick Setup:**
-1. Get free Tavily API key from https://tavily.com/
-2. Get free Deepgram API key from https://www.deepgram.com/
-3. Update Custom Metadata records:
-   - `Tavily_API_Config__mdt.Default` → Add your Tavily API key
-   - `Deepgram_API_Config__mdt.Default` → Add your Deepgram API key
-
-### Einstein Generative AI
-Ensure Einstein Generative AI is enabled in your org. The component uses the `sfdc_ai__DefaultOpenAIGPT4Omni` model.
 
 ## Testing
 
