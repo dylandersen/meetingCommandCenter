@@ -177,12 +177,34 @@
 .event-link {
   color: var(--slds-g-color-brand-base-50, #0176d3);
   text-decoration: none;
+  display: inline-flex;
+  align-items: center;
 }
 
 .account-link:hover,
 .contact-link:hover,
 .event-link:hover {
   text-decoration: underline;
+}
+
+/* External Link Icon - smaller and vertically centered */
+.external-link-icon {
+  --sds-c-icon-color-foreground-default: var(
+    --slds-g-color-neutral-base-50,
+    #939393
+  );
+  transform: scale(0.65);
+  vertical-align: middle;
+}
+
+/* Section Header with Icon */
+.section-header {
+  display: inline-flex;
+  align-items: center;
+}
+
+.section-header-icon {
+  transform: scale(0.7);
 }
 
 /* Account Summary */

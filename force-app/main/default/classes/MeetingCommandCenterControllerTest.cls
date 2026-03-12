@@ -64,30 +64,24 @@ public class MeetingCommandCenterControllerTest {
   @isTest
   static void testGetTodaysEvents() {
     Test.startTest();
-    List<Map<String, Object>> events = MeetingCommandCenterController.getTodaysEvents(null);
+    List<Event> events = MeetingCommandCenterController.getTodaysEvents();
     Test.stopTest();
 
     // Should return 2-3 events for today (depends on timing of test execution)
     System.assert(events.size() >= 2 && events.size() <= 3, 'Should return 2-3 events for today, got: ' + events.size());
     
     // Verify events are ordered by StartDateTime
-    if (events.size() > 1) {
-      for (Integer i = 0; i < events.size() - 1; i++) {
-        DateTime start1 = (DateTime) events[i].get('StartDateTime');
-        DateTime start2 = (DateTime) events[i + 1].get('StartDateTime');
-        System.assert(
-          start1 <= start2,
-          'Events should be ordered by StartDateTime'
-        );
-      }
+    for (Integer i = 0; i < events.size() - 1; i++) {
+      System.assert(
+        events[i].StartDateTime <= events[i + 1].StartDateTime,
+        'Events should be ordered by StartDateTime'
+      );
     }
 
     // Verify related data is queried
-    if (events.size() > 0) {
-      Map<String, Object> firstEvent = events[0];
-      System.assertNotEquals(null, firstEvent.get('Subject'), 'Subject should be populated');
-      System.assertNotEquals(null, firstEvent.get('DurationInMinutes'), 'Duration should be populated');
-    }
+    Event firstEvent = events[0];
+    System.assertNotEquals(null, firstEvent.Subject, 'Subject should be populated');
+    System.assertNotEquals(null, firstEvent.DurationInMinutes, 'Duration should be populated');
   }
 
   @isTest
@@ -96,7 +90,7 @@ public class MeetingCommandCenterControllerTest {
     delete [SELECT Id FROM Event];
 
     Test.startTest();
-    List<Map<String, Object>> events = MeetingCommandCenterController.getTodaysEvents(null);
+    List<Event> events = MeetingCommandCenterController.getTodaysEvents();
     Test.stopTest();
 
     System.assertEquals(0, events.size(), 'Should return 0 events when none exist');
@@ -173,49 +167,38 @@ public class MeetingCommandCenterControllerTest {
   @isTest
   static void testGetTodaysEvents_VerifyFieldsReturned() {
     Test.startTest();
-    List<Map<String, Object>> events = MeetingCommandCenterController.getTodaysEvents(null);
+    List<Event> events = MeetingCommandCenterController.getTodaysEvents();
     Test.stopTest();
 
-    // Verify events are returned
-    System.assert(events.size() > 0, 'Should have at least one event');
+    // Verify custom fields are included in query
+    Event evt = events[0];
+    // These fields should be queryable (may be null, but shouldn't throw)
+    Object summary = evt.AI_Meeting_Summary__c;
+    Object outcomes = evt.AI_Key_Outcomes__c;
+    Object steps = evt.AI_Next_Steps__c;
+    Object recapCompleted = evt.Recap_Completed__c;
     
-    if (events.size() > 0) {
-      Map<String, Object> evt = events[0];
-      
-      // Verify Recap_Completed__c is accessible (set dynamically by controller)
-      Object recapCompleted = evt.get('Recap_Completed__c');
-      System.assertNotEquals(null, recapCompleted, 'Recap_Completed__c should be set');
-      System.assertEquals(false, recapCompleted, 'Recap should not be completed initially');
-    }
+    // Just verify they're accessible
+    System.assertEquals(false, evt.Recap_Completed__c, 'Recap should not be completed initially');
   }
 
   @isTest
   static void testGetTodaysEvents_VerifyRelatedData() {
     Test.startTest();
-    List<Map<String, Object>> events = MeetingCommandCenterController.getTodaysEvents(null);
+    List<Event> events = MeetingCommandCenterController.getTodaysEvents();
     Test.stopTest();
 
-    // Verify events are returned
-    System.assert(events.size() > 0, 'Should have at least one event');
-
     // Find an event with related account
-    Map<String, Object> eventWithAccount = null;
-    for (Map<String, Object> evt : events) {
-      if (evt.get('WhatId') != null) {
+    Event eventWithAccount = null;
+    for (Event evt : events) {
+      if (evt.WhatId != null) {
         eventWithAccount = evt;
         break;
       }
     }
 
     System.assertNotEquals(null, eventWithAccount, 'Should have an event with WhatId');
-    
-    // Verify related data structure
-    Map<String, Object> whatData = (Map<String, Object>) eventWithAccount.get('What');
-    Map<String, Object> whoData = (Map<String, Object>) eventWithAccount.get('Who');
-    
-    System.assertNotEquals(null, whatData, 'Should have What data');
-    System.assertNotEquals(null, whatData.get('Name'), 'Should have related account name');
-    System.assertNotEquals(null, whoData, 'Should have Who data');
-    System.assertNotEquals(null, whoData.get('Name'), 'Should have related contact name');
+    System.assertNotEquals(null, eventWithAccount.What.Name, 'Should have related account name');
+    System.assertNotEquals(null, eventWithAccount.Who.Name, 'Should have related contact name');
   }
 }

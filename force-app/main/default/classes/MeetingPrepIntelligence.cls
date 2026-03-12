@@ -93,6 +93,201 @@ public with sharing class MeetingPrepIntelligence {
   }
 
   /**
+   * LWC-callable: Generate meeting prep brief only (no competitive intel).
+   * Runs SOQL data gathering + Einstein AI brief in parallel with competitive intel.
+   */
+  @AuraEnabled
+  public static MeetingPrepOutput generateMeetingPrepBriefOnly(
+    String eventId,
+    Boolean regenerate
+  ) {
+    Boolean regen = regenerate != null ? regenerate : false;
+
+    // Check for existing prep (unless regenerating)
+    if (!regen) {
+      List<Meeting_Prep__c> existingPreps = [
+        SELECT
+          Id, Event__c, Prep_Brief_HTML__c, Attendee_Summary__c,
+          Key_Talking_Points__c, Recent_Updates__c, Questions_To_Ask__c,
+          Potential_Objections__c, Competitive_Intelligence__c, Generated_Date__c
+        FROM Meeting_Prep__c
+        WHERE Event__c = :eventId
+        ORDER BY Generated_Date__c DESC
+        LIMIT 1
+      ];
+      if (!existingPreps.isEmpty()) {
+        return convertToOutput(existingPreps[0], eventId);
+      }
+    }
+
+    // Query Event data
+    List<Event> events = queryEventData(eventId);
+    if (events.isEmpty()) {
+      return createErrorOutput('Event not found with ID: ' + eventId);
+    }
+    Event evt = events[0];
+
+    // Gather SOQL data
+    List<AttendeeDetail> attendees = getAttendeeDetails(eventId);
+
+    String accountId = resolveAccountId(evt, attendees);
+    Account acc = accountId != null ? queryAccountData(accountId) : null;
+    List<Opportunity> opportunities = accountId != null
+      ? queryRelatedOpportunities(accountId) : new List<Opportunity>();
+    List<Case> cases = accountId != null
+      ? queryRelatedCases(accountId) : new List<Case>();
+    ActivityData activityData = accountId != null
+      ? queryRecentActivity(accountId) : new ActivityData();
+
+    // Build prompt WITHOUT competitive intel
+    String promptText = buildMeetingPrepPrompt(
+      evt, attendees, acc, opportunities, cases, activityData,
+      'Competitive intelligence is being loaded separately.'
+    );
+
+    // Call Einstein AI
+    String prepBriefHTML = callEinsteinAI(promptText);
+
+    // Save Meeting_Prep__c with blank competitive intel
+    Meeting_Prep__c prep = new Meeting_Prep__c();
+    prep.Event__c = eventId;
+    prep.Generated_Date__c = DateTime.now();
+    prep.Prep_Brief_HTML__c = prepBriefHTML;
+    prep.Attendee_Summary__c = JSON.serialize(buildAttendeeSummary(attendees));
+    prep.Competitive_Intelligence__c = '';
+
+    try {
+      insert prep;
+      prep = [
+        SELECT Id, Event__c, Prep_Brief_HTML__c, Attendee_Summary__c,
+          Key_Talking_Points__c, Recent_Updates__c, Questions_To_Ask__c,
+          Potential_Objections__c, Competitive_Intelligence__c, Generated_Date__c
+        FROM Meeting_Prep__c WHERE Id = :prep.Id LIMIT 1
+      ];
+      return convertToOutput(prep, eventId);
+    } catch (Exception e) {
+      return createErrorOutput('Error saving meeting prep: ' + e.getMessage());
+    }
+  }
+
+  /**
+   * LWC-callable: Generate competitive intel only and update existing Meeting_Prep__c.
+   * Runs Tavily API + Einstein AI competitive intel analysis.
+   */
+  @AuraEnabled
+  public static MeetingPrepOutput generateCompetitiveIntelOnly(String eventId, Boolean regenerate) {
+    Boolean regen = regenerate != null ? regenerate : false;
+
+    // Check for cached competitive intel
+    if (!regen) {
+      List<Meeting_Prep__c> existingPreps = [
+        SELECT Id, Event__c, Prep_Brief_HTML__c, Attendee_Summary__c,
+          Key_Talking_Points__c, Recent_Updates__c, Questions_To_Ask__c,
+          Potential_Objections__c, Competitive_Intelligence__c, Generated_Date__c
+        FROM Meeting_Prep__c
+        WHERE Event__c = :eventId
+        ORDER BY Generated_Date__c DESC
+        LIMIT 1
+      ];
+      if (!existingPreps.isEmpty() && String.isNotBlank(existingPreps[0].Competitive_Intelligence__c)) {
+        return convertToOutput(existingPreps[0], eventId);
+      }
+    }
+
+    // Query Event data to resolve company
+    List<Event> events = queryEventData(eventId);
+    if (events.isEmpty()) {
+      return createErrorOutput('Event not found with ID: ' + eventId);
+    }
+    Event evt = events[0];
+
+    List<AttendeeDetail> attendees = getAttendeeDetails(eventId);
+    String accountId = resolveAccountId(evt, attendees);
+    Account acc = accountId != null ? queryAccountData(accountId) : null;
+
+    // Resolve company name for Tavily search
+    String companyName = null;
+    String companyWebsite = null;
+    if (acc != null && String.isNotBlank(acc.Name)) {
+      companyName = acc.Name;
+      companyWebsite = acc.Website;
+    } else if (evt.WhoId != null) {
+      String whoPrefix = String.valueOf(evt.WhoId).substring(0, 3);
+      if (whoPrefix == '00Q') {
+        List<Lead> leads = [
+          SELECT Company, Website FROM Lead WHERE Id = :evt.WhoId LIMIT 1
+        ];
+        if (!leads.isEmpty() && String.isNotBlank(leads[0].Company)) {
+          companyName = leads[0].Company;
+          companyWebsite = leads[0].Website;
+        }
+      }
+    }
+
+    String competitiveIntel = String.isNotBlank(companyName)
+      ? getCompetitiveIntelligence(companyName, companyWebsite)
+      : 'No competitive intelligence available (no account or company linked to meeting).';
+
+    // Update existing Meeting_Prep__c record
+    List<Meeting_Prep__c> existingPreps = [
+      SELECT Id, Event__c, Prep_Brief_HTML__c, Attendee_Summary__c,
+        Key_Talking_Points__c, Recent_Updates__c, Questions_To_Ask__c,
+        Potential_Objections__c, Competitive_Intelligence__c, Generated_Date__c
+      FROM Meeting_Prep__c
+      WHERE Event__c = :eventId
+      ORDER BY Generated_Date__c DESC
+      LIMIT 1
+    ];
+
+    if (!existingPreps.isEmpty()) {
+      Meeting_Prep__c prep = existingPreps[0];
+      prep.Competitive_Intelligence__c = competitiveIntel;
+      try {
+        update prep;
+        prep = [
+          SELECT Id, Event__c, Prep_Brief_HTML__c, Attendee_Summary__c,
+            Key_Talking_Points__c, Recent_Updates__c, Questions_To_Ask__c,
+            Potential_Objections__c, Competitive_Intelligence__c, Generated_Date__c
+          FROM Meeting_Prep__c WHERE Id = :prep.Id LIMIT 1
+        ];
+        MeetingPrepOutput output = convertToOutput(prep, eventId);
+        output.competitiveIntelligence = competitiveIntel;
+        return output;
+      } catch (Exception e) {
+        return createErrorOutput('Error updating competitive intel: ' + e.getMessage());
+      }
+    } else {
+      // No existing record yet — return intel in output without persisting
+      MeetingPrepOutput output = new MeetingPrepOutput();
+      output.success = true;
+      output.competitiveIntelligence = competitiveIntel;
+      return output;
+    }
+  }
+
+  /**
+   * Helper: Resolve accountId from Event, WhoId, or attendees
+   */
+  private static String resolveAccountId(Event evt, List<AttendeeDetail> attendees) {
+    String accountId = null;
+    if (evt.WhatId != null) {
+      String whatIdPrefix = String.valueOf(evt.WhatId).substring(0, 3);
+      if (whatIdPrefix == '001') {
+        accountId = evt.WhatId;
+      } else if (whatIdPrefix == '006' || whatIdPrefix == '003') {
+        accountId = queryAccountFromRelatedRecord(evt.WhatId);
+      }
+    }
+    if (accountId == null && evt.WhoId != null) {
+      accountId = queryAccountFromContact(evt.WhoId);
+    }
+    if (accountId == null && !attendees.isEmpty()) {
+      accountId = queryAccountFromAttendees(evt.Id);
+    }
+    return accountId;
+  }
+
+  /**
    * Main invocable method to generate meeting prep brief using AI
    * @param inputs List of meeting prep requests
    * @return List of meeting prep results
@@ -155,25 +350,7 @@ public with sharing class MeetingPrepIntelligence {
     List<AttendeeDetail> attendees = getAttendeeDetails(eventId);
 
     // Query Account data (priority: WhatId if Account, then WhoId contact, then EventRelation contacts)
-    String accountId = null;
-    if (evt.WhatId != null) {
-      String whatIdPrefix = String.valueOf(evt.WhatId).substring(0, 3);
-      if (whatIdPrefix == '001') {
-        accountId = evt.WhatId;
-      } else if (whatIdPrefix == '006' || whatIdPrefix == '003') {
-        accountId = queryAccountFromRelatedRecord(evt.WhatId);
-      }
-    }
-
-    // Try WhoId contact's account
-    if (accountId == null && evt.WhoId != null) {
-      accountId = queryAccountFromContact(evt.WhoId);
-    }
-
-    // Fall back to EventRelation attendees' accounts
-    if (accountId == null && !attendees.isEmpty()) {
-      accountId = queryAccountFromAttendees(eventId);
-    }
+    String accountId = resolveAccountId(evt, attendees);
 
     Account acc = accountId != null ? queryAccountData(accountId) : null;
 
@@ -532,7 +709,9 @@ public with sharing class MeetingPrepIntelligence {
         NumberOfEmployees,
         Website,
         Phone,
-        Description
+        Description,
+        Support_Contract_Level__c,
+        Account_Research__c
       FROM Account
       WHERE Id = :accountId
       LIMIT 1
@@ -733,18 +912,7 @@ public with sharing class MeetingPrepIntelligence {
         String tavilyContext = buildTavilyContext(accountName, answer, results);
 
         // Use AI to generate strategic competitive intelligence
-        try {
-          return generateStrategicIntelligence(accountName, tavilyContext);
-        } catch (Exception aiEx) {
-          System.debug('Error in generateStrategicIntelligence: ' + aiEx.getTypeName() + ' - ' + aiEx.getMessage());
-          System.debug('Stack trace: ' + aiEx.getStackTraceString());
-          // Return raw research data if AI fails
-          return '<p>Error generating strategic analysis: ' +
-            aiEx.getMessage() +
-            '. Using raw research data.</p><pre>' +
-            tavilyContext +
-            '</pre>';
-        }
+        return generateStrategicIntelligence(accountName, tavilyContext);
       } else {
         return '<p>Tavily API returned error ' +
           res.getStatusCode() +
@@ -914,103 +1082,8 @@ public with sharing class MeetingPrepIntelligence {
 
       String promptText = String.join(promptParts, '');
 
-      // Call Einstein AI - use OpenAI GPT4 Omni (proven to work in this org)
-      String modelName = 'sfdc_ai__DefaultOpenAIGPT4Omni';
-
-      aiplatform.ModelsAPI.createGenerations_Request request = new aiplatform.ModelsAPI.createGenerations_Request();
-      request.modelName = modelName;
-
-      aiplatform.ModelsAPI_GenerationRequest requestBody = new aiplatform.ModelsAPI_GenerationRequest();
-      request.body = requestBody;
-      requestBody.prompt = promptText;
-
-      aiplatform.ModelsAPI modelsAPI = new aiplatform.ModelsAPI();
-      aiplatform.ModelsAPI.createGenerations_Response response = modelsAPI.createGenerations(
-        request
-      );
-
-      if (response != null && response.Code200 != null && response.Code200.generation != null) {
-        String generatedText = response.Code200.generation.generatedText;
-        if (String.isNotBlank(generatedText)) {
-          // Clean up any markdown artifacts from the response
-          return cleanAIResponse(generatedText);
-        } else {
-          System.debug('AI returned empty response');
-          throw new CalloutException('AI returned empty response');
-        }
-      } else {
-        System.debug('No AI response received. Response: ' + (response != null ? JSON.serialize(response) : 'null'));
-        throw new CalloutException('No response from AI service. Response was null or did not contain generation.');
-      }
-    } catch (aiplatform.ModelsAPI.createGenerations_ResponseException e) {
-      System.debug('Einstein AI ModelsAPI error: ' + e.getMessage());
-      
-      // If Gemini model not available, try OpenAI fallback
-      String errorMsg = e.getMessage();
-      if (errorMsg != null && (errorMsg.contains('not found') || errorMsg.contains('model') || errorMsg.contains('404') || errorMsg.contains('unavailable'))) {
-        System.debug('Gemini model not available, trying OpenAI fallback...');
-        try {
-          return generateStrategicIntelligenceFallback(accountName, tavilyContext);
-        } catch (Exception fallbackEx) {
-          System.debug('Fallback also failed: ' + fallbackEx.getMessage());
-          return '<p>Error: AI models not available. Please ensure Einstein Generative AI is enabled. Using raw research data.</p><pre>' +
-            tavilyContext +
-            '</pre>';
-        }
-      } else {
-        // Other error - return with details
-        return '<p>Error generating strategic analysis: ' +
-          errorMsg +
-          '. Using raw research data.</p><pre>' +
-          tavilyContext +
-          '</pre>';
-      }
-    } catch (Exception e) {
-      System.debug('AI analysis error: ' + e.getTypeName() + ' - ' + e.getMessage());
-      System.debug('Stack trace: ' + e.getStackTraceString());
-      
-      // Try fallback for any exception
-      try {
-        System.debug('Attempting fallback model...');
-        return generateStrategicIntelligenceFallback(accountName, tavilyContext);
-      } catch (Exception fallbackEx) {
-        System.debug('Fallback also failed: ' + fallbackEx.getTypeName() + ' - ' + fallbackEx.getMessage());
-        System.debug('Fallback stack trace: ' + fallbackEx.getStackTraceString());
-        // Return a user-friendly error message
-        String errorMsg = e.getMessage();
-        if (String.isBlank(errorMsg) || errorMsg == 'Script-thrown exception') {
-          errorMsg = 'AI service unavailable. Please ensure Einstein Generative AI is enabled in Setup.';
-        }
-        return '<p>Error generating strategic analysis: ' +
-          errorMsg +
-          '. Using raw research data.</p><pre>' +
-          tavilyContext +
-          '</pre>';
-      }
-    }
-  }
-
-  /**
-   * Fallback method using OpenAI GPT4 Omni model
-   */
-  private static String generateStrategicIntelligenceFallback(
-    String accountName,
-    String tavilyContext
-  ) {
-    try {
-      // Use the same prompt but with a different model
-      List<String> promptParts = new List<String>();
-      promptParts.add(
-        'You are an expert Sales Intelligence Analyst preparing competitive intelligence for a sales meeting. Based on the company research data below, generate strategic competitive intelligence.\n\n'
-      );
-      promptParts.add(tavilyContext + '\n\n');
-      promptParts.add(
-        'Generate a comprehensive competitive intelligence brief with sections: Company Overview, Business Model, Customer Base, Current Challenges, Growth Indicators, Recent Developments, Sales Opportunity Analysis, and Key Talking Points. Format as clean HTML with <h3> for headers, <p> for paragraphs, and <ul>/<li> for lists. Include source links where available.\n\n'
-      );
-
-      String promptText = String.join(promptParts, '');
-
-      String modelName = 'sfdc_ai__DefaultOpenAIGPT4Omni';
+      // Call Einstein AI with Gemini 3.0 Flash model
+      String modelName = 'sfdc_ai__DefaultVertexAIGemini30Flash';
 
       aiplatform.ModelsAPI.createGenerations_Request request = new aiplatform.ModelsAPI.createGenerations_Request();
       request.modelName = modelName;
@@ -1026,13 +1099,18 @@ public with sharing class MeetingPrepIntelligence {
 
       if (response.Code200 != null && response.Code200.generation != null) {
         String generatedText = response.Code200.generation.generatedText;
+        // Clean up any markdown artifacts from the response
         return cleanAIResponse(generatedText);
       } else {
-        throw new CalloutException('No response from fallback model');
+        return '<p>No AI response received. Using raw research data.</p><pre>' +
+          tavilyContext +
+          '</pre>';
       }
     } catch (Exception e) {
-      System.debug('Fallback model error: ' + e.getMessage());
-      throw e;
+      System.debug('AI analysis error: ' + e.getMessage());
+      return '<p>Error generating strategic analysis. Using raw research data.</p><pre>' +
+        tavilyContext +
+        '</pre>';
     }
   }
 
@@ -1064,6 +1142,12 @@ public with sharing class MeetingPrepIntelligence {
 
     // Fix unclosed HTML tags (common AI mistakes)
     cleaned = fixUnclosedTags(cleaned);
+
+    // Add spacing between paragraph endings and headings.
+    // When a </p> is followed by an <h2> or <h3> (with any whitespace in between),
+    // inject a <br/> for visual separation. Lists already have enough bottom margin.
+    cleaned = cleaned.replaceAll('(?i)</p>(\\s*)<h2', '</p><br/><h2');
+    cleaned = cleaned.replaceAll('(?i)</p>(\\s*)<h3', '</p><br/><h3');
 
     return cleaned;
   }
@@ -1302,7 +1386,11 @@ public with sharing class MeetingPrepIntelligence {
           '\n'
       );
       promptParts.add(
-        '- **Support Contract:** Not specified\n'
+        '- **Support Contract:** ' +
+          (String.isNotBlank(acc.Support_Contract_Level__c)
+            ? acc.Support_Contract_Level__c
+            : 'None') +
+          '\n'
       );
       if (String.isNotBlank(acc.Description)) {
         promptParts.add('- **Description:** ' + acc.Description + '\n');
@@ -1549,152 +1637,86 @@ public with sharing class MeetingPrepIntelligence {
     // Instructions for AI
     promptParts.add('## YOUR TASK\n\n');
     promptParts.add(
-      'Generate a CONSISTENT, FOCUSED, and SCANNABLE meeting prep brief following this EXACT structure:\n\n'
+      'Generate a CONVERSATIONAL, NARRATIVE meeting prep brief that reads like a well-written executive briefing document — NOT a spreadsheet of numbers. Output ONLY the final HTML. Do NOT echo back any instructions, template placeholders, or descriptions of what each section should contain.\n\n'
     );
 
-    promptParts.add('## REQUIRED OUTPUT STRUCTURE\n\n');
-    promptParts.add('**CRITICAL CONSISTENCY RULES:**\n');
-    promptParts.add('- Use EXACTLY the same HTML structure every time\n');
+    promptParts.add('## WRITING STYLE (CRITICAL)\n\n');
     promptParts.add(
-      '- Keep each section concise and focused (2-3 sentences or 3-5 bullet points max)\n'
+      'Write in a flowing, narrative style with PROSE PARAGRAPHS — the same style as a McKinsey briefing memo or a Wall Street Journal profile. Use <strong> to bold key names (customer names, contact names, opportunity/deal names, company names) inline within sentences. Weave dollar amounts naturally into sentences rather than leading with them. Prioritize NAMING people, deals, and accounts over raw numbers.\n\n'
     );
-    promptParts.add('- Use bullet points for lists, NOT long paragraphs\n');
-    promptParts.add('- Bold key data points: names, dates, amounts, metrics\n');
     promptParts.add(
-      '- Avoid redundancy - don\'t repeat information across sections\n\n'
+      'GOOD example: "The <strong>Enterprise Platform Upgrade</strong> opportunity with <strong>Sarah Chen</strong> is in the negotiation stage and tracking toward a <strong>March 15</strong> close. This represents the largest active deal in the pipeline and is worth discussing timeline expectations."\n\n'
     );
-
-    promptParts.add('**EXACT TEMPLATE TO FOLLOW:**\n\n');
-
-    promptParts.add('<h1>1. Meeting Overview</h1>\n');
     promptParts.add(
-      '<p>Write ONE focused paragraph (2-3 sentences) covering: meeting purpose, key objectives, and why this meeting matters. Include <b>date</b> and <b>account name</b> in bold.</p>\n\n'
+      'BAD example: "Discuss the $97,000 opportunity currently in negotiation, which has a 90% probability of closing soon."\n\n'
+    );
+    promptParts.add(
+      'The goal is for the reader to walk away remembering NAMES and CONTEXT, not just dollar figures.\n\n'
     );
 
-    promptParts.add('<h1>2. Attendee Profiles</h1>\n');
+    promptParts.add('## OUTPUT SECTIONS (use <h2> for each heading)\n\n');
+
     promptParts.add(
-      '<p>For each attendee listed in the ATTENDEES section, provide their name, title, influence level, and detailed engagement history. Use actual data from the ATTENDEES section and recent activity data above.</p>\n'
-    );
-    promptParts.add('<p>For EACH attendee, include:</p>\n');
-    promptParts.add('<ul>\n');
-    promptParts.add(
-      '<li><b>[Attendee name]</b> - [Title]<br/>Influence: [Decision Maker/Influencer/Stakeholder based on title]<br/>Engagement: [Specific engagement details from activity data - mention emails, calls, meetings]<br/><b>What they said:</b> [Quotes or summaries from their past emails/communications - use actual excerpts from RECENT ACTIVITY section]<br/><b>Key concerns:</b> [Topics or issues they\'ve raised based on activity data]<br/><b>What others said:</b> [What other contacts in the account have mentioned about them or related topics]</li>\n'
-    );
-    promptParts.add('</ul>\n');
-    promptParts.add(
-      '<p>If no attendees listed in ATTENDEES section, write: "No specific attendees identified. Prepare for general account discussion."</p>\n\n'
+      '**Section 1 — Meeting Overview:** One paragraph (3-4 sentences) as flowing prose. Name the <strong>account</strong>, the <strong>meeting subject</strong>, and the key objective. Bold the account name, date, and any attendee names. Set the strategic context for why this meeting matters.\n\n'
     );
 
-    promptParts.add('<h1>3. Account Relationship Status</h1>\n');
     promptParts.add(
-      '<p>Provide detailed, data-driven relationship status based on actual activity data from the last 120 days:</p>\n'
-    );
-    promptParts.add('<ul>\n');
-    promptParts.add(
-      '<li><b>Pipeline:</b> [X] open opportunities totaling <b>$[amount]</b></li>\n'
-    );
-    promptParts.add('<li><b>Recent Wins:</b> [X] closed won deals</li>\n');
-    promptParts.add(
-      '<li><b>Open Issues:</b> [X] open cases ([priorities if any])</li>\n'
-    );
-    promptParts.add(
-      '<li><b>Activity Level (Last 120 Days):</b> [X] emails ([X] sent, [X] received), [X] calls, [X] meetings. Break down by contact name when available from RECENT ACTIVITY section.</li>\n'
-    );
-    promptParts.add(
-      '<li><b>Key Contact Engagement:</b> For each contact mentioned in RECENT ACTIVITY, summarize their communication frequency and recent topics discussed. Include specific quotes or summaries from their emails.</li>\n'
-    );
-    promptParts.add(
-      '<li><b>Recent Communication Highlights:</b> Summarize 2-3 key points from recent emails/tasks/events, attributing them to specific contacts when possible. Use actual excerpts from RECENT ACTIVITY section.</li>\n'
-    );
-    promptParts.add(
-      '<li><b>Relationship Health:</b> [Healthy/Stable/At Risk - 1-2 sentences explaining why based on activity patterns, engagement trends, and communication sentiment]</li>\n'
-    );
-    promptParts.add('</ul>\n\n');
-
-    promptParts.add('<h1>4. Key Talking Points</h1>\n');
-    promptParts.add('<p>Prioritized topics to discuss (LIMIT TO 5):</p>\n');
-    promptParts.add('<ol>\n');
-    promptParts.add('<li>[Talking point - 1 sentence, bold key terms]</li>\n');
-    promptParts.add('<li>[Talking point - 1 sentence, bold key terms]</li>\n');
-    promptParts.add('<li>[Talking point - 1 sentence, bold key terms]</li>\n');
-    promptParts.add('<li>[Talking point - 1 sentence, bold key terms]</li>\n');
-    promptParts.add('<li>[Talking point - 1 sentence, bold key terms]</li>\n');
-    promptParts.add('</ol>\n\n');
-
-    promptParts.add('<h1>5. Strategic Questions</h1>\n');
-    promptParts.add('<p>Ask these discovery questions (LIMIT TO 5-7):</p>\n');
-    promptParts.add('<ul>\n');
-    promptParts.add('<li>[Question focused on their challenges/needs]</li>\n');
-    promptParts.add('<li>[Question about their priorities/timeline]</li>\n');
-    promptParts.add(
-      '<li>[Question about decision process/stakeholders]</li>\n'
-    );
-    promptParts.add('<li>[Question about budget/investment]</li>\n');
-    promptParts.add('<li>[Question about success criteria]</li>\n');
-    promptParts.add('</ul>\n\n');
-
-    promptParts.add('<h1>6. Potential Objections & Responses</h1>\n');
-    promptParts.add(
-      '<p>Anticipate and prepare for these objections (LIMIT TO 3-4):</p>\n'
-    );
-    promptParts.add('<ul>\n');
-    promptParts.add(
-      '<li><b>Objection:</b> "[Likely objection]"<br/><b>Response:</b> [How to handle - 1 sentence]</li>\n'
-    );
-    promptParts.add('</ul>\n\n');
-
-    promptParts.add('<h1>7. Desired Meeting Outcomes</h1>\n');
-    promptParts.add('<ul>\n');
-    promptParts.add(
-      '<li>[Specific outcome - e.g., "Schedule follow-up demo"]</li>\n'
-    );
-    promptParts.add(
-      '<li>[Specific outcome - e.g., "Get commitment on timeline"]</li>\n'
-    );
-    promptParts.add(
-      '<li>[Specific outcome - e.g., "Identify additional stakeholders"]</li>\n'
-    );
-    promptParts.add('</ul>\n\n');
-
-    promptParts.add('## STRICT FORMATTING RULES\n\n');
-    promptParts.add(
-      '1. Return ONLY the HTML output - no markdown, no code blocks, no backticks\n'
-    );
-    promptParts.add('2. Use <h1> for section numbers (1., 2., 3., etc.)\n');
-    promptParts.add(
-      '3. Use <b> tags to bold: names, amounts, dates, metrics, key terms\n'
-    );
-    promptParts.add(
-      '4. Use <ul><li> for bullet lists, <ol><li> for numbered lists\n'
-    );
-    promptParts.add('5. Keep lists SHORT - no more than items specified\n');
-    promptParts.add('6. Each bullet/list item should be 1-2 sentences MAX\n');
-    promptParts.add('7. Use <br/> for line breaks within list items\n');
-    promptParts.add(
-      '8. ALWAYS include a blank line (empty paragraph <p></p> or double newline) between each section heading (<h1>) to ensure proper spacing\n'
-    );
-    promptParts.add(
-      '9. Focus on ACTIONABLE insights, not generic statements\n\n'
+      '**Section 2 — Attendee Profiles:** For each attendee, write a SHORT narrative paragraph (not just bullets). Bold their <strong>name</strong> and <strong>title</strong>. Describe their role, influence level, and what recent interactions reveal about their priorities — reference specific email subjects, meeting topics, or task descriptions from RECENT ACTIVITY. If no attendees exist, write one sentence: "No specific attendees identified. Prepare for general account discussion." — and nothing else for this section.\n\n'
     );
 
-    promptParts.add('## CONTENT QUALITY RULES\n\n');
     promptParts.add(
-      '- Base ALL analysis on the data provided - don\'t speculate or invent information\n'
+      '**Section 3 — Account Relationship Status:** Write 2-3 narrative paragraphs that tell the STORY of the relationship. Weave in data points naturally:\n'
     );
     promptParts.add(
-      '- If data is missing for a section, acknowledge it briefly and move on\n'
-    );
-    promptParts.add('- Prioritize recent information over old data\n');
-    promptParts.add(
-      '- Connect competitive intelligence insights to talking points\n'
-    );
-    promptParts.add('- Make questions SPECIFIC to this account, not generic\n');
-    promptParts.add(
-      '- Objections should be based on industry, company size, or visible challenges\n'
+      '- Name each open opportunity by its <strong>deal name</strong> and stage, mentioning amounts as supporting detail (not the lead).\n'
     );
     promptParts.add(
-      '- Every recommendation should be ACTIONABLE with clear next steps\n\n'
+      '- Reference any open cases by <strong>subject</strong> and priority.\n'
     );
+    promptParts.add(
+      '- Describe engagement momentum — cite specific contact names and what topics they discussed in recent emails/meetings.\n'
+    );
+    promptParts.add(
+      '- End with a Relationship Health assessment (Healthy/Stable/At Risk) grounded in the data.\n'
+    );
+    promptParts.add(
+      'Use bullet points (<ul><li>) ONLY for a concise data snapshot (e.g., pipeline count, case count) after the narrative paragraphs.\n\n'
+    );
+
+    promptParts.add(
+      '**Section 4 — Key Talking Points:** 5 numbered items. Each must be a CONVERSATIONAL sentence that names a specific <strong>person</strong>, <strong>deal name</strong>, <strong>case subject</strong>, or <strong>email topic</strong>. Dollar amounts can appear as supporting context but should NOT be the primary anchor. Reference people by name and deals by their opportunity name. Example: "Check in with <strong>James Martinez</strong> about the <strong>Cloud Migration Services</strong> proposal — he mentioned needing the SOW by end of month."\n\n'
+    );
+
+    promptParts.add(
+      '**Section 5 — Strategic Questions:** 5-7 bullet questions written as if you are proving you have done your homework. Each question MUST name a specific person, deal, case, or communication topic. Ground questions in relationship context, not just financial data. Example: "In your recent exchange with <strong>Lisa Park</strong> about the software patch, she raised concerns about data lag — what is the current status of that resolution?"\n\n'
+    );
+
+    promptParts.add(
+      '**Section 6 — Potential Objections & Responses:** 3-4 items. Each: <strong>Objection:</strong> a realistic concern grounded in account signals (name the deal, case, or contact). <strong>Response:</strong> 1-2 sentence counter. Frame objections around relationship and business context, not just pricing.\n\n'
+    );
+
+    promptParts.add(
+      '**Section 7 — Desired Meeting Outcomes:** 3-4 bullets. Each outcome must name a specific deal, case, or relationship milestone. Example: "Secure <strong>Sarah Chen\'s</strong> commitment to move the <strong>Enterprise Platform Upgrade</strong> to contract review stage."\n\n'
+    );
+
+    promptParts.add('## STRICT RULES\n\n');
+    promptParts.add('FORMATTING:\n');
+    promptParts.add('- Return ONLY clean HTML. No markdown, no code blocks, no backticks.\n');
+    promptParts.add('- Use <h2> for section headings (e.g. <h2>Meeting Overview</h2>).\n');
+    promptParts.add('- Use <strong> (not <b>) to bold names, deal names, account names, dates, key terms inline within prose.\n');
+    promptParts.add('- Use <p> tags for narrative paragraphs.\n');
+    promptParts.add('- Use <ul><li> for bullet lists, <ol><li> for numbered lists — but prefer prose paragraphs over bullet lists.\n');
+    promptParts.add('- Do NOT use <h1> or <h3> tags — only <h2>.\n');
+    promptParts.add('- Do NOT start output with any text before the first <h2> tag.\n\n');
+
+    promptParts.add('CONTENT:\n');
+    promptParts.add('- Do NOT output any instructions, template text, or placeholder descriptions. Every word in the output must be the final brief.\n');
+    promptParts.add('- Do NOT lead sentences with dollar amounts. Name the deal/person FIRST, then mention amounts as context.\n');
+    promptParts.add('- Do NOT write generic filler. If you cannot tie a point to specific data, omit it.\n');
+    promptParts.add('- Base ALL analysis on the data provided — do not speculate or invent information.\n');
+    promptParts.add('- If data is missing for a section, acknowledge it in one sentence and move on.\n');
+    promptParts.add('- Prioritize naming customers, contacts, deal names, and case subjects over raw numbers.\n');
+    promptParts.add('- Every talking point and question must reference a specific name, deal, case, or communication — dollar amounts are supporting detail, not the headline.\n\n');
 
     return String.join(promptParts, '');
   }

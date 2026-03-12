@@ -5,6 +5,7 @@ import { WorkspaceAPI } from "lightning/platformWorkspaceApi";
 import { encodeDefaultFieldValues } from "lightning/pageReferenceUtils";
 import TIME_ZONE from "@salesforce/i18n/timeZone";
 import getTodaysEvents from "@salesforce/apex/MeetingCommandCenterController.getTodaysEvents";
+import getContactAccountMap from "@salesforce/apex/MeetingCommandCenterController.getContactAccountMap";
 import getMeetingRecapId from "@salesforce/apex/MeetingCommandCenterController.getMeetingRecapId";
 import getMeetingPrepId from "@salesforce/apex/MeetingCommandCenterController.getMeetingPrepId";
 import generateEventContent from "@salesforce/apex/MeetingCommandCenterController.generateEventContent";
@@ -23,6 +24,8 @@ export default class MeetingCommandCenter extends NavigationMixin(
   @track selectedEventContactName = null;
   @track selectedEventContactId = null;
   @track selectedDate = new Date(); // Track the currently selected date
+  @track sortField = "StartDateTime";
+  @track sortDirection = "asc";
   workspaceApi;
 
   connectedCallback() {
@@ -101,28 +104,53 @@ export default class MeetingCommandCenter extends NavigationMixin(
     }, 100);
   }
 
-  loadEvents() {
+  async loadEvents() {
     this.isLoading = true;
     this.error = null;
 
-    // Format date as YYYY-MM-DD for Apex in user's timezone
-    const dateString = this.formatDateForApex(this.selectedDate);
+    try {
+      // Format date as YYYY-MM-DD for Apex in user's timezone
+      const dateString = this.formatDateForApex(this.selectedDate);
+      const result = await getTodaysEvents({ selectedDate: dateString });
+      this.processEvents(result);
 
-    getTodaysEvents({ selectedDate: dateString })
-      .then((result) => {
-        this.processEvents(result);
-      })
-      .catch((error) => {
-        this.error = error.body ? error.body.message : error.message;
-        this.showToast(
-          "Error",
-          "Failed to load events: " + this.error,
-          "error"
-        );
-      })
-      .finally(() => {
-        this.isLoading = false;
-      });
+      // Fetch contact account mappings for contacts without an event-level account
+      const contactIds = this.events
+        .filter((e) => e.whoId && !e.relatedId)
+        .map((e) => e.whoId);
+
+      if (contactIds.length > 0) {
+        try {
+          const accountMap = await getContactAccountMap({
+            contactIds: contactIds
+          });
+          if (accountMap && Object.keys(accountMap).length > 0) {
+            this.events = this.events.map((evt) => {
+              const acctInfo = accountMap[evt.whoId];
+              if (acctInfo && !evt.relatedId) {
+                return {
+                  ...evt,
+                  contactAccountId: acctInfo.accountId,
+                  contactAccountName: acctInfo.accountName
+                };
+              }
+              return evt;
+            });
+          }
+        } catch (err) {
+          console.error("Error loading contact accounts:", err);
+        }
+      }
+    } catch (error) {
+      this.error = error.body ? error.body.message : error.message;
+      this.showToast(
+        "Error",
+        "Failed to load events: " + this.error,
+        "error"
+      );
+    } finally {
+      this.isLoading = false;
+    }
   }
 
   processEvents(rawEvents) {
@@ -241,6 +269,34 @@ export default class MeetingCommandCenter extends NavigationMixin(
     return `${count} meetings starting at ${firstStartTime}, last meeting at ${lastEndTime} - ${totalHours} hours of meetings total`;
   }
 
+  get eventCountHtml() {
+    const count = this.events.length;
+    if (count === 0) return "No meetings";
+
+    if (count === 1) {
+      const event = this.events[0];
+      const startTime = event.formattedStartTime;
+      const duration = event.durationText;
+      return `<strong>1 meeting</strong> at <strong>${startTime}</strong> (${duration})`;
+    }
+
+    const sortedEvents = [...this.events].sort((a, b) => {
+      return new Date(a.StartDateTime) - new Date(b.StartDateTime);
+    });
+
+    const firstEvent = sortedEvents[0];
+    const lastEvent = sortedEvents[sortedEvents.length - 1];
+    const firstStartTime = firstEvent.formattedStartTime;
+    const lastEndTime = this.formatTime(new Date(lastEvent.EndDateTime));
+
+    const totalMinutes = this.events.reduce((sum, event) => {
+      return sum + (event.DurationInMinutes || 0);
+    }, 0);
+    const totalHours = (totalMinutes / 60).toFixed(1);
+
+    return `<strong>${count} meetings</strong> starting at <strong>${firstStartTime}</strong>, last meeting at <strong>${lastEndTime}</strong> &mdash; <strong>${totalHours} hours</strong> of meetings total`;
+  }
+
   get emptyStateTitle() {
     return this.isToday ? "No Meetings Today" : "No Meetings on This Day";
   }
@@ -258,6 +314,89 @@ export default class MeetingCommandCenter extends NavigationMixin(
 
   get showEmptyState() {
     return !this.isLoading && !this.error && this.events.length === 0;
+  }
+
+  get skeletonRows() {
+    return [1, 2, 3, 4, 5];
+  }
+
+  get sortedEvents() {
+    if (!this.events || this.events.length === 0) return [];
+    return [...this.events].sort((a, b) => {
+      const dir = this.sortDirection === "asc" ? 1 : -1;
+      let valA, valB;
+
+      switch (this.sortField) {
+        case "StartDateTime":
+          return (
+            dir * (new Date(a.StartDateTime) - new Date(b.StartDateTime))
+          );
+        case "Subject":
+          valA = (a.Subject || "").toLowerCase();
+          valB = (b.Subject || "").toLowerCase();
+          break;
+        case "whoName":
+          valA = (a.whoName || "").toLowerCase();
+          valB = (b.whoName || "").toLowerCase();
+          break;
+        case "accountName":
+          valA = (
+            a.relatedName ||
+            a.contactAccountName ||
+            ""
+          ).toLowerCase();
+          valB = (
+            b.relatedName ||
+            b.contactAccountName ||
+            ""
+          ).toLowerCase();
+          break;
+        case "Location":
+          valA = (a.Location || "").toLowerCase();
+          valB = (b.Location || "").toLowerCase();
+          break;
+        case "status":
+          // Sort order: In Progress, Upcoming, Ended
+          valA = a.isNow ? 0 : a.isUpcoming ? 1 : 2;
+          valB = b.isNow ? 0 : b.isUpcoming ? 1 : 2;
+          return dir * (valA - valB);
+        default:
+          return 0;
+      }
+      if (valA < valB) return -1 * dir;
+      if (valA > valB) return 1 * dir;
+      return 0;
+    });
+  }
+
+  get tableColumns() {
+    const cols = [
+      { field: "StartDateTime", label: "Time" },
+      { field: "Subject", label: "Meeting" },
+      { field: "whoName", label: "Contact" },
+      { field: "accountName", label: "Account" },
+      { field: "Location", label: "Location" },
+      { field: "status", label: "Status" }
+    ];
+    return cols.map((col) => ({
+      ...col,
+      isSorted: this.sortField === col.field,
+      isSortedAsc: this.sortField === col.field && this.sortDirection === "asc",
+      isSortedDesc:
+        this.sortField === col.field && this.sortDirection === "desc",
+      headerClass:
+        "th-cell" + (this.sortField === col.field ? " th-cell--active" : "")
+    }));
+  }
+
+  handleSort(event) {
+    const field = event.currentTarget.dataset.field;
+    if (this.sortField === field) {
+      this.sortDirection = this.sortDirection === "asc" ? "desc" : "asc";
+    } else {
+      this.sortField = field;
+      this.sortDirection = "asc";
+    }
   }
 
   handleEventClick(event) {
@@ -324,8 +463,14 @@ export default class MeetingCommandCenter extends NavigationMixin(
     if (selectedEvent) {
       this.selectedEventId = eventId;
       this.selectedEventSubject = selectedEvent.Subject;
-      this.selectedEventAccountName = selectedEvent.relatedName || null;
-      this.selectedEventAccountId = selectedEvent.relatedId || null;
+      this.selectedEventAccountName =
+        selectedEvent.contactAccountName ||
+        selectedEvent.relatedName ||
+        null;
+      this.selectedEventAccountId =
+        selectedEvent.contactAccountId ||
+        selectedEvent.relatedId ||
+        null;
       this.selectedEventContactName = selectedEvent.whoName || null;
       this.selectedEventContactId = selectedEvent.whoId || null;
       this.showRecapModal = true;
