@@ -78,25 +78,15 @@
                 <div
                   class="slds-col account-contact-group slds-m-bottom_x-small"
                 >
-                  <!-- Account - Always shown -->
-                  <template lwc:if={accountInfo.accountName}>
-                    <div class="account-contact-item">
-                      <div class="slds-text-body_small slds-text-color_weak">
-                        Account
-                      </div>
-                      <a
-                        href="javascript:void(0)"
-                        class="slds-text-heading_small account-link"
-                        onclick={handleAccountClick}
-                      >
-                        {accountInfo.accountName}
-                      </a>
-                    </div>
-                  </template>
-                  <!-- Contact - Always shown -->
+                  <!-- Contact -->
                   <template lwc:if={accountInfo.contactName}>
                     <div class="account-contact-item">
-                      <div class="slds-text-body_small slds-text-color_weak">
+                      <div class="slds-text-body_small slds-text-color_weak section-header">
+                        <lightning-icon
+                          icon-name="standard:contact"
+                          size="xx-small"
+                          class="slds-m-right_xx-small section-header-icon"
+                        ></lightning-icon>
                         Contact
                       </div>
                       <a
@@ -105,13 +95,50 @@
                         onclick={handleContactClick}
                       >
                         {accountInfo.contactName}
+                        <lightning-icon
+                          icon-name="utility:new_window"
+                          size="xx-small"
+                          class="slds-m-left_xx-small external-link-icon"
+                          alternative-text="Opens in new tab"
+                        ></lightning-icon>
                       </a>
                     </div>
                   </template>
-                  <!-- Event Name - Always shown -->
+                  <!-- Account -->
+                  <template lwc:if={accountInfo.accountName}>
+                    <div class="account-contact-item">
+                      <div class="slds-text-body_small slds-text-color_weak section-header">
+                        <lightning-icon
+                          icon-name="standard:account"
+                          size="xx-small"
+                          class="slds-m-right_xx-small section-header-icon"
+                        ></lightning-icon>
+                        Account
+                      </div>
+                      <a
+                        href="javascript:void(0)"
+                        class="slds-text-heading_small account-link"
+                        onclick={handleAccountClick}
+                      >
+                        {accountInfo.accountName}
+                        <lightning-icon
+                          icon-name="utility:new_window"
+                          size="xx-small"
+                          class="slds-m-left_xx-small external-link-icon"
+                          alternative-text="Opens in new tab"
+                        ></lightning-icon>
+                      </a>
+                    </div>
+                  </template>
+                  <!-- Event Name -->
                   <template lwc:if={eventSubject}>
                     <div class="account-contact-item">
-                      <div class="slds-text-body_small slds-text-color_weak">
+                      <div class="slds-text-body_small slds-text-color_weak section-header">
+                        <lightning-icon
+                          icon-name="standard:event"
+                          size="xx-small"
+                          class="slds-m-right_xx-small section-header-icon"
+                        ></lightning-icon>
                         Event Name
                       </div>
                       <a
@@ -120,6 +147,12 @@
                         onclick={handleEventClick}
                       >
                         {eventSubject}
+                        <lightning-icon
+                          icon-name="utility:new_window"
+                          size="xx-small"
+                          class="slds-m-left_xx-small external-link-icon"
+                          alternative-text="Opens in new tab"
+                        ></lightning-icon>
                       </a>
                     </div>
                   </template>

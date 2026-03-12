@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+    "Salesforce DX": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@salesforce/mcp",
+        "--orgs",
+        "DEFAULT_TARGET_ORG",
+        "--toolsets",
+        "orgs,metadata,data,users,lwc-experts",
+        "--tools",
+        "run_apex_test",
+        "--allow-non-ga-tools"
+      ]
+    }
+  }
+}

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<GenAiFunction xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description
+  >Analyzes an upcoming meeting and generates a comprehensive prep brief with attendee profiles, talking points, account updates, questions to ask, potential objections, and competitive intelligence</description>
+    <invocationTarget>MeetingPrepIntelligence</invocationTarget>
+    <invocationTargetType>apex</invocationTargetType>
+    <isConfirmationRequired>false</isConfirmationRequired>
+    <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+    <masterLabel>Generate Meeting Prep</masterLabel>
+    <progressIndicatorMessage
+  >Analyzing meeting context, attendees, account data, and competitive landscape...</progressIndicatorMessage>
+</GenAiFunction>

@@ -10,7 +10,7 @@ public with sharing class MeetingCommandCenterController {
    * @return List of Event records with related data
    */
   @AuraEnabled(cacheable=true)
-  public static List<Map<String, Object>> getTodaysEvents(String selectedDate) {
+  public static List<Event> getTodaysEvents(String selectedDate) {
     // Parse the selected date or use today
     Date targetDate;
     if (String.isNotBlank(selectedDate)) {
@@ -74,21 +74,46 @@ public with sharing class MeetingCommandCenterController {
       }
     }
 
-    // Convert events to Maps and add recap status
-    List<Map<String, Object>> eventMaps = new List<Map<String, Object>>();
+    // Add recap status to events (for backward compatibility with LWC)
     for (Event evt : events) {
       Meeting_Recap__c recap = recapMap.get(evt.Id);
-      // Convert Event to Map
-      Map<String, Object> eventMap = (Map<String, Object>) JSON.deserializeUntyped(JSON.serialize(evt));
-      // Add Recap_Completed__c field
-      eventMap.put(
+      // Set Recap_Completed__c based on recap existence
+      // This maintains compatibility with existing LWC logic
+      evt.put(
         'Recap_Completed__c',
         recap != null && recap.Recap_Completed__c == true
       );
-      eventMaps.add(eventMap);
     }
 
-    return eventMaps;
+    return events;
+  }
+
+  /**
+   * Gets the Account info for a list of Contact IDs
+   * Used to display the contact's account in the meeting list
+   * @param contactIds List of Contact IDs
+   * @return Map of ContactId to account info (accountId, accountName)
+   */
+  @AuraEnabled(cacheable=true)
+  public static Map<Id, Map<String, String>> getContactAccountMap(
+    List<Id> contactIds
+  ) {
+    Map<Id, Map<String, String>> result = new Map<Id, Map<String, String>>();
+    if (contactIds == null || contactIds.isEmpty()) {
+      return result;
+    }
+
+    for (Contact c : [
+      SELECT Id, AccountId, Account.Name
+      FROM Contact
+      WHERE Id IN :contactIds AND AccountId != NULL
+    ]) {
+      Map<String, String> info = new Map<String, String>();
+      info.put('accountId', c.AccountId);
+      info.put('accountName', c.Account.Name);
+      result.put(c.Id, info);
+    }
+    return result;
   }
 
   /**
@@ -507,29 +532,15 @@ public with sharing class MeetingCommandCenterController {
 
     try {
       // Get API key from Custom Metadata
-      Deepgram_API_Config__mdt config;
-      try {
-        config = Deepgram_API_Config__mdt.getInstance('Default');
-      } catch (Exception configEx) {
-        System.debug('Error getting config: ' + configEx.getMessage());
-        throw new AuraHandledException('Deepgram API configuration not found. Please configure the API key in Custom Metadata.');
-      }
-      
+      Deepgram_API_Config__mdt config = Deepgram_API_Config__mdt.getInstance(
+        'Default'
+      );
       if (config == null || String.isBlank(config.API_Key__c)) {
-        throw new AuraHandledException('Deepgram API key is not configured. Please set the API key in Custom Metadata Type: Deepgram_API_Config__mdt');
+        throw new AuraHandledException('Deepgram API key not configured');
       }
 
       // Decode base64 audio
-      Blob audioBlob;
-      try {
-        audioBlob = EncodingUtil.base64Decode(audioBase64);
-        if (audioBlob == null || audioBlob.size() == 0) {
-          throw new AuraHandledException('Invalid audio data: empty or corrupted');
-        }
-      } catch (Exception decodeEx) {
-        System.debug('Error decoding audio: ' + decodeEx.getMessage());
-        throw new AuraHandledException('Failed to decode audio data. Please try recording again.');
-      }
+      Blob audioBlob = EncodingUtil.base64Decode(audioBase64);
 
       // Build Deepgram API request
       HttpRequest req = new HttpRequest();
@@ -543,26 +554,13 @@ public with sharing class MeetingCommandCenterController {
       req.setTimeout(30000); // 30 second timeout
 
       Http http = new Http();
-      HttpResponse res;
-      try {
-        res = http.send(req);
-      } catch (Exception httpEx) {
-        System.debug('HTTP callout error: ' + httpEx.getMessage());
-        throw new AuraHandledException('Failed to connect to Deepgram API. Please check your network connection and Remote Site Settings.');
-      }
+      HttpResponse res = http.send(req);
 
       if (res.getStatusCode() == 200) {
         // Parse Deepgram response
-        Map<String, Object> responseData;
-        try {
-          responseData = (Map<String, Object>) JSON.deserializeUntyped(
-            res.getBody()
-          );
-        } catch (Exception parseEx) {
-          System.debug('Error parsing response: ' + parseEx.getMessage());
-          System.debug('Response body: ' + res.getBody());
-          throw new AuraHandledException('Failed to parse transcription response from Deepgram API.');
-        }
+        Map<String, Object> responseData = (Map<String, Object>) JSON.deserializeUntyped(
+          res.getBody()
+        );
 
         // Extract transcript from response
         String transcript = extractTranscript(responseData);
@@ -572,40 +570,21 @@ public with sharing class MeetingCommandCenterController {
         }
         return '';
       } else {
-        String errorBody = res.getBody();
         System.debug(
           'Deepgram API error: ' + res.getStatusCode() + ' - ' + res.getStatus()
         );
-        System.debug('Response body: ' + errorBody);
-        
-        String errorMessage = 'Deepgram API returned error code ' + res.getStatusCode();
-        if (res.getStatusCode() == 401) {
-          errorMessage = 'Deepgram API authentication failed. Please check your API key.';
-        } else if (res.getStatusCode() == 400) {
-          errorMessage = 'Invalid request to Deepgram API. The audio format may not be supported.';
-        } else if (res.getStatusCode() >= 500) {
-          errorMessage = 'Deepgram API server error. Please try again later.';
-        }
-        throw new AuraHandledException(errorMessage);
+        System.debug('Response body: ' + res.getBody());
+        throw new AuraHandledException(
+          'Deepgram API returned error: ' + res.getStatusCode()
+        );
       }
-    } catch (AuraHandledException e) {
-      // Re-throw AuraHandledException as-is
-      throw e;
     } catch (Exception e) {
-      String errorMsg = e.getMessage();
-      if (String.isBlank(errorMsg)) {
-        errorMsg = e.getTypeName();
-      }
-      if (String.isBlank(errorMsg)) {
-        errorMsg = 'Unknown error occurred during transcription';
-      }
       System.debug(
         LoggingLevel.ERROR,
-        'Error in transcribeAudioChunk: ' + errorMsg
+        'Error in transcribeAudioChunk: ' + e.getMessage()
       );
-      System.debug('Exception type: ' + e.getTypeName());
       System.debug('Stack trace: ' + e.getStackTraceString());
-      throw new AuraHandledException('Transcription error: ' + errorMsg);
+      throw new AuraHandledException('Transcription error: ' + e.getMessage());
     }
   }
 
@@ -675,17 +654,21 @@ public with sharing class MeetingCommandCenterController {
         result.put('accountId', evt.WhatId);
         result.put('accountName', evt.What != null ? evt.What.Name : null);
 
-        // Generate AI summary if we have an account
-        if (evt.WhatId != null) {
-          String summary = generateAccountSummary(evt.WhatId);
-          result.put('accountSummary', summary);
-        }
+        // Generate AI summary for the account
+        String summary = generateAccountSummary(evt.WhatId);
+        result.put('accountSummary', summary);
       }
 
       // Set contact info
       if (evt.WhoId != null) {
         result.put('contactId', evt.WhoId);
         result.put('contactName', evt.Who != null ? evt.Who.Name : null);
+
+        // If no account, generate a contact-based summary instead
+        if (evt.WhatId == null) {
+          String summary = generateContactSummary(evt.WhoId);
+          result.put('accountSummary', summary);
+        }
       }
 
       return result;
@@ -754,6 +737,165 @@ public with sharing class MeetingCommandCenterController {
       System.debug(
         LoggingLevel.ERROR,
         'Error generating account summary: ' + e.getMessage()
+      );
+      return null;
+    }
+  }
+
+  /**
+   * Generates an AI summary of recent contact activity (used when no account is linked)
+   */
+  private static String generateContactSummary(String contactId) {
+    try {
+      Date startDate = Date.today().addDays(-30);
+
+      // Get the contact's account (if any) and details
+      List<Contact> contacts = [
+        SELECT Id, Name, Title, AccountId, Account.Name, Email
+        FROM Contact
+        WHERE Id = :contactId
+        LIMIT 1
+      ];
+
+      String accountId = null;
+      String contactContext = '';
+      if (!contacts.isEmpty()) {
+        Contact c = contacts[0];
+        contactContext += 'Contact: ' + c.Name;
+        if (c.Title != null) {
+          contactContext += ' (' + c.Title + ')';
+        }
+        if (c.Account != null) {
+          contactContext += ' at ' + c.Account.Name;
+          accountId = c.AccountId;
+        }
+        contactContext += '\n\n';
+      }
+
+      // Get recent cases for the contact
+      List<Case> recentCases = [
+        SELECT Id, Subject, Status, Priority, CreatedDate
+        FROM Case
+        WHERE ContactId = :contactId AND CreatedDate >= :startDate
+        ORDER BY CreatedDate DESC
+        LIMIT 10
+      ];
+
+      // Get recent tasks for the contact
+      List<Task> recentTasks = [
+        SELECT Id, Subject, Status, CreatedDate
+        FROM Task
+        WHERE WhoId = :contactId AND CreatedDate >= :startDate
+        ORDER BY CreatedDate DESC
+        LIMIT 10
+      ];
+
+      // Get recent events with this contact
+      List<Event> recentEvents = [
+        SELECT Id, Subject, StartDateTime
+        FROM Event
+        WHERE WhoId = :contactId AND CreatedDate >= :startDate
+        ORDER BY StartDateTime DESC
+        LIMIT 5
+      ];
+
+      // If the contact has an account, also pull recent opportunities
+      List<Opportunity> recentOpps = new List<Opportunity>();
+      if (accountId != null) {
+        recentOpps = [
+          SELECT Id, Name, StageName, Amount, CloseDate
+          FROM Opportunity
+          WHERE
+            AccountId = :accountId
+            AND CreatedDate >= :startDate
+          ORDER BY CreatedDate DESC
+          LIMIT 10
+        ];
+      }
+
+      // Build context
+      String context = contactContext + 'Recent Activity:\n\n';
+
+      if (!recentCases.isEmpty()) {
+        context += 'Recent Cases:\n';
+        for (Case c : recentCases) {
+          context +=
+            '- ' +
+            c.Subject +
+            ' (' +
+            c.Status +
+            ', Priority: ' +
+            c.Priority +
+            ')\n';
+        }
+        context += '\n';
+      }
+
+      if (!recentOpps.isEmpty()) {
+        context += 'Recent Opportunities:\n';
+        for (Opportunity o : recentOpps) {
+          String amount = o.Amount != null
+            ? '$' + String.valueOf(o.Amount)
+            : 'Amount not specified';
+          context +=
+            '- ' + o.Name + ' (' + o.StageName + ', ' + amount + ')\n';
+        }
+        context += '\n';
+      }
+
+      if (!recentTasks.isEmpty()) {
+        context += 'Recent Tasks:\n';
+        for (Task t : recentTasks) {
+          context +=
+            '- ' +
+            (t.Subject != null ? t.Subject : 'Task') +
+            ' (' +
+            t.Status +
+            ')\n';
+        }
+        context += '\n';
+      }
+
+      if (!recentEvents.isEmpty()) {
+        context += 'Recent Meetings:\n';
+        for (Event e : recentEvents) {
+          context +=
+            '- ' +
+            (e.Subject != null ? e.Subject : 'Event') +
+            ' (' +
+            e.StartDateTime.format() +
+            ')\n';
+        }
+        context += '\n';
+      }
+
+      if (
+        recentCases.isEmpty() &&
+        recentOpps.isEmpty() &&
+        recentTasks.isEmpty() &&
+        recentEvents.isEmpty()
+      ) {
+        context += 'No recent activity in the last 30 days.\n';
+      }
+
+      // Build AI prompt
+      String prompt =
+        'You are a sales assistant helping prepare for a meeting. ';
+      prompt +=
+        'Based on the following recent activity for this contact, provide a brief 2-3 sentence summary ';
+      prompt +=
+        'of what\'s been happening with this contact recently. Focus on key updates, ';
+      prompt +=
+        'open items, and anything relevant for an upcoming meeting.\n\n';
+      prompt += context;
+      prompt +=
+        '\n\nProvide a concise, actionable summary in plain text (no markdown or formatting).';
+
+      return callModelsAPI(prompt);
+    } catch (Exception e) {
+      System.debug(
+        LoggingLevel.ERROR,
+        'Error generating contact summary: ' + e.getMessage()
       );
       return null;
     }

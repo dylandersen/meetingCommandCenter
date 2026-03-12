@@ -1,10 +1,9 @@
 <template>
   <div class="app-container">
-    <!-- SLDS2 Card-Style Header with Rounded Corners -->
-    <lightning-card class="header-card">
+    <!-- Header Card -->
+    <div class="header-card">
       <div class="header-card-content">
         <div class="header-content">
-          <!-- Left Side: Title and Description -->
           <div class="header-left">
             <div class="slds-media">
               <div class="slds-media__figure">
@@ -25,514 +24,544 @@
               </div>
             </div>
           </div>
-
-          <!-- Right Side: Instructions - Centered -->
-          <div class="header-right">
-            <div class="instructions-box">
-              <div class="instructions-header">
-                <lightning-icon
-                  icon-name="utility:info"
-                  size="x-small"
-                  class="instructions-header-icon"
-                ></lightning-icon>
-                <span class="instructions-title"> Quick Start</span>
-              </div>
-              <div class="instructions-content">
-                <div class="instruction-item">
-                  <lightning-icon
-                    icon-name="utility:date_time"
-                    size="xx-small"
-                    class="instruction-bullet"
-                  ></lightning-icon>
-                  <span>Navigate dates with arrows</span>
-                </div>
-                <div class="instruction-item">
-                  <lightning-icon
-                    icon-name="utility:magicwand"
-                    size="xx-small"
-                    class="instruction-bullet"
-                  ></lightning-icon>
-                  <span>Click "Recap Meeting" after events ✨</span>
-                </div>
-                <div class="instruction-item">
-                  <lightning-icon
-                    icon-name="utility:forward"
-                    size="xx-small"
-                    class="instruction-bullet"
-                  ></lightning-icon>
-                  <span>Prep for upcoming meetings</span>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
 
-        <!-- What This Does Section -->
+        <!-- Three-column feature cards row -->
         <div class="features-grid">
           <div class="feature-box">
-            <div class="slds-media">
-              <div class="slds-media__figure">
-                <div class="feature-icon-wrapper">
-                  <lightning-icon
-                    icon-name="utility:magicwand"
-                    size="small"
-                    class="feature-icon"
-                  ></lightning-icon>
-                </div>
+            <div class="feature-box-header">
+              <lightning-icon
+                icon-name="utility:info"
+                size="small"
+                class="feature-header-icon"
+              ></lightning-icon>
+              <h3 class="feature-title">Quick Start</h3>
+            </div>
+            <div class="instructions-content">
+              <div class="instruction-item">
+                <lightning-icon
+                  icon-name="utility:date_time"
+                  size="xx-small"
+                  class="instruction-bullet"
+                ></lightning-icon>
+                <span>Navigate dates with arrows</span>
               </div>
-              <div class="slds-media__body">
-                <h3 class="feature-title">AI-Powered Meeting Recaps</h3>
-                <p class="feature-description">
-                  After your meetings, Agentforce automatically generates
-                  comprehensive recaps with key discussion points, action items,
-                  and next steps. Simply click "Recap Meeting" to get instant
-                  AI-generated summaries.
-                </p>
+              <div class="instruction-item">
+                <lightning-icon
+                  icon-name="utility:magicwand"
+                  size="xx-small"
+                  class="instruction-bullet"
+                ></lightning-icon>
+                <span>Click "Recap Meeting" after events ✨</span>
+              </div>
+              <div class="instruction-item">
+                <lightning-icon
+                  icon-name="utility:forward"
+                  size="xx-small"
+                  class="instruction-bullet"
+                ></lightning-icon>
+                <span>Prep for upcoming meetings</span>
               </div>
             </div>
           </div>
           <div class="feature-box">
-            <div class="slds-media">
-              <div class="slds-media__figure">
-                <div class="feature-icon-wrapper">
-                  <lightning-icon
-                    icon-name="utility:forward"
-                    size="small"
-                    class="feature-icon"
-                  ></lightning-icon>
-                </div>
+            <div class="feature-box-header">
+              <lightning-icon
+                icon-name="utility:magicwand"
+                size="small"
+                class="feature-header-icon"
+              ></lightning-icon>
+              <h3 class="feature-title">AI-Powered Meeting Recaps</h3>
+            </div>
+            <div class="instructions-content">
+              <div class="instruction-item">
+                <lightning-icon
+                  icon-name="utility:chat"
+                  size="xx-small"
+                  class="instruction-bullet"
+                ></lightning-icon>
+                <span>Key discussion points summarized</span>
               </div>
-              <div class="slds-media__body">
-                <h3 class="feature-title">Meeting Preparation</h3>
-                <p class="feature-description">
-                  Prepare for upcoming meetings by accessing meeting details,
-                  related accounts and contacts, and all relevant context. Use
-                  "Prep for Meeting" to review everything you need before the
-                  meeting starts.
-                </p>
+              <div class="instruction-item">
+                <lightning-icon
+                  icon-name="utility:task"
+                  size="xx-small"
+                  class="instruction-bullet"
+                ></lightning-icon>
+                <span>Action items and next steps extracted</span>
+              </div>
+              <div class="instruction-item">
+                <lightning-icon
+                  icon-name="utility:touch_action"
+                  size="xx-small"
+                  class="instruction-bullet"
+                ></lightning-icon>
+                <span>Click "Recap Meeting" for instant AI summaries</span>
+              </div>
+            </div>
+          </div>
+          <div class="feature-box">
+            <div class="feature-box-header">
+              <lightning-icon
+                icon-name="utility:forward"
+                size="small"
+                class="feature-header-icon"
+              ></lightning-icon>
+              <h3 class="feature-title">Meeting Preparation</h3>
+            </div>
+            <div class="instructions-content">
+              <div class="instruction-item">
+                <lightning-icon
+                  icon-name="utility:account"
+                  size="xx-small"
+                  class="instruction-bullet"
+                ></lightning-icon>
+                <span>Related accounts and contacts at a glance</span>
+              </div>
+              <div class="instruction-item">
+                <lightning-icon
+                  icon-name="utility:knowledge_base"
+                  size="xx-small"
+                  class="instruction-bullet"
+                ></lightning-icon>
+                <span>All relevant context in one place</span>
+              </div>
+              <div class="instruction-item">
+                <lightning-icon
+                  icon-name="utility:checkin"
+                  size="xx-small"
+                  class="instruction-bullet"
+                ></lightning-icon>
+                <span>Click "Prep for Meeting" to get ready</span>
               </div>
             </div>
           </div>
         </div>
       </div>
-    </lightning-card>
+    </div>
 
-    <!-- Content Section -->
-    <div class="content-section">
-      <!-- Loading State -->
+    <!-- Unified Meetings Card: Date Nav + Events List -->
+    <div class="meetings-card">
+      <!-- Card Header: Date Toolbar -->
+      <div class="meetings-card__header">
+        <div class="meetings-card__toolbar">
+          <div class="meetings-card__nav">
+            <button
+              type="button"
+              class="nav-btn"
+              onclick={handlePreviousDay}
+              title="Previous day"
+            >
+              <lightning-icon
+                icon-name="utility:chevronleft"
+                size="xx-small"
+                alternative-text="Previous day"
+              ></lightning-icon>
+            </button>
+            <h2 class="meetings-card__date">
+              {formattedDate}
+            </h2>
+            <button
+              type="button"
+              class="nav-btn"
+              onclick={handleNextDay}
+              title="Next day"
+            >
+              <lightning-icon
+                icon-name="utility:chevronright"
+                size="xx-small"
+                alternative-text="Next day"
+              ></lightning-icon>
+            </button>
+          </div>
+          <div class="meetings-card__actions">
+            <template lwc:if={isToday}>
+              <span class="meetings-card__today-badge">Today</span>
+            </template>
+            <template lwc:else>
+              <lightning-button
+                variant="neutral"
+                label="Today"
+                onclick={handleGoToToday}
+                size="small"
+              ></lightning-button>
+            </template>
+            <button
+              type="button"
+              class="refresh-btn"
+              onclick={handleRefresh}
+              title="Refresh"
+            >
+              <lightning-icon
+                icon-name="utility:refresh"
+                size="xx-small"
+                alternative-text="Refresh"
+              ></lightning-icon>
+            </button>
+          </div>
+        </div>
+        <template if:true={hasEvents}>
+          <div class="meetings-card__summary">
+            <lightning-formatted-rich-text
+              value={eventCountHtml}
+              disable-linkify
+            ></lightning-formatted-rich-text>
+          </div>
+        </template>
+      </div>
+
+      <!-- Card Body: Loading Skeleton -->
       <template lwc:if={isLoading}>
-        <div class="slds-align_absolute-center slds-m-around_large">
-          <lightning-spinner
-            alternative-text="Loading events..."
-            size="medium"
-          ></lightning-spinner>
-          <p
-            class="slds-text-body_regular slds-m-top_medium slds-text-color_weak"
-          >
-            Loading your meetings...
-          </p>
+        <div class="table-wrapper">
+          <table class="meetings-table">
+            <thead>
+              <tr>
+                <th class="th-cell"><div class="th-content"><span class="th-label">Time</span></div></th>
+                <th class="th-cell"><div class="th-content"><span class="th-label">Meeting</span></div></th>
+                <th class="th-cell"><div class="th-content"><span class="th-label">Contact</span></div></th>
+                <th class="th-cell"><div class="th-content"><span class="th-label">Account</span></div></th>
+                <th class="th-cell"><div class="th-content"><span class="th-label">Location</span></div></th>
+                <th class="th-cell"><div class="th-content"><span class="th-label">Status</span></div></th>
+                <th class="th-cell th-cell--action"><div class="th-content th-content--static"><span class="th-label">Actions</span></div></th>
+              </tr>
+            </thead>
+            <tbody>
+              <template for:each={skeletonRows} for:item="row">
+                <tr key={row} class="table-row skeleton-row">
+                  <td class="td-cell td-cell--time"><div class="skeleton-bar skeleton-bar--sm"></div><div class="skeleton-bar skeleton-bar--xs"></div></td>
+                  <td class="td-cell td-cell--meeting"><div class="skeleton-bar skeleton-bar--lg"></div></td>
+                  <td class="td-cell"><div class="skeleton-bar skeleton-bar--md"></div></td>
+                  <td class="td-cell"><div class="skeleton-bar skeleton-bar--md"></div></td>
+                  <td class="td-cell td-cell--location"><div class="skeleton-bar skeleton-bar--md"></div></td>
+                  <td class="td-cell"><div class="skeleton-bar skeleton-bar--badge"></div></td>
+                  <td class="td-cell td-cell--action"><div class="skeleton-bar skeleton-bar--btn"></div></td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
         </div>
       </template>
 
-      <!-- Error State -->
+      <!-- Card Body: Error -->
       <template lwc:if={error}>
-        <div class="slds-align_absolute-center slds-m-around_large">
+        <div class="meetings-card__status">
           <lightning-icon
             icon-name="utility:error"
             size="medium"
             variant="error"
           ></lightning-icon>
-          <p
-            class="slds-text-body_regular slds-m-top_medium slds-text-color_error"
-          >
+          <p class="meetings-card__status-text meetings-card__status-text--error">
             {error}
           </p>
           <lightning-button
             variant="brand"
             label="Retry"
             onclick={loadEvents}
-            class="slds-m-top_medium"
+            class="slds-m-top_small"
           ></lightning-button>
         </div>
       </template>
 
-      <!-- Date Navigation - Centered -->
-      <div class="date-navigation-container">
-        <div class="date-navigation-wrapper">
-          <button
-            type="button"
-            class="slds-button slds-button_icon slds-button_icon-small date-nav-button"
-            onclick={handlePreviousDay}
-            title="Previous day"
-          >
-            <lightning-icon
-              icon-name="utility:chevronleft"
-              size="x-small"
-              alternative-text="Previous day"
-            ></lightning-icon>
-            <span class="slds-assistive-text">Previous day</span>
-          </button>
-          <span class="slds-text-body_regular date-text">
-            {formattedDate}
-            <template if:true={isToday}>
-              <span class="slds-m-left_x-small go-to-today-label">(Today)</span>
-            </template>
-          </span>
-          <button
-            type="button"
-            class="slds-button slds-button_icon slds-button_icon-small date-nav-button"
-            onclick={handleNextDay}
-            title="Next day"
-          >
-            <lightning-icon
-              icon-name="utility:chevronright"
-              size="x-small"
-              alternative-text="Next day"
-            ></lightning-icon>
-            <span class="slds-assistive-text">Next day</span>
-          </button>
-          <lightning-button
-            variant="brand"
-            label="Today"
-            onclick={handleGoToToday}
-            class="today-button"
-            size="small"
-          ></lightning-button>
-          <button
-            type="button"
-            class="slds-button slds-button_icon slds-button_icon-small refresh-button-circle"
-            onclick={handleRefresh}
-            title="Refresh"
-          >
-            <lightning-icon
-              icon-name="utility:refresh"
-              size="x-small"
-              alternative-text="Refresh"
-            ></lightning-icon>
-            <span class="slds-assistive-text">Refresh</span>
-          </button>
-        </div>
-        <template if:true={hasEvents}>
-          <div class="meeting-summary">
-            <span class="slds-text-body_small summary-text"
-              >{eventCountText}</span
-            >
-          </div>
-        </template>
-      </div>
-
-      <!-- Events List -->
+      <!-- Card Body: Events Table -->
       <template lwc:if={hasEvents}>
-        <div class="slds-card">
-          <div class="slds-card__body slds-card__body_inner">
-            <ul class="slds-list_vertical slds-has-dividers_top-space">
-              <template for:each={events} for:item="event">
-                <li key={event.Id} class="slds-item">
-                  <div
-                    class="slds-grid slds-grid_align-spread slds-grid_vertical-align-center slds-p-around_small event-item-row"
-                  >
-                    <!-- Time Column -->
-                    <div class="slds-col slds-size_2-of-12">
-                      <div
-                        class="slds-text-heading_small slds-text-color_default"
-                      >
-                        {event.formattedStartTime}
-                      </div>
-                      <div
-                        class="slds-text-body_small slds-text-color_weak slds-m-top_xx-small"
-                      >
-                        {event.durationText}
-                      </div>
-                      <div class="slds-m-top_x-small">
-                        <template lwc:if={event.isPast}>
-                          <lightning-badge
-                            label="Ended"
-                            class="slds-badge_inverse"
-                          ></lightning-badge>
-                        </template>
-                        <template lwc:elseif={event.isNow}>
-                          <lightning-badge
-                            label="In Progress"
-                            class="slds-badge_warning"
-                          ></lightning-badge>
-                        </template>
-                        <template lwc:else>
-                          <lightning-badge
-                            label="Upcoming"
-                            class="slds-badge_lightest"
-                          ></lightning-badge>
-                        </template>
-                      </div>
-                    </div>
-
-                    <!-- Content Column -->
+        <div class="table-wrapper">
+          <table class="meetings-table">
+            <thead>
+              <tr>
+                <template for:each={tableColumns} for:item="col">
+                  <th key={col.field} class={col.headerClass}>
                     <div
-                      class="slds-col slds-size_7-of-12 event-content-column"
+                      class="th-content"
+                      data-field={col.field}
+                      onclick={handleSort}
                     >
-                      <c-record-hover-popover
-                        record-id={event.Id}
-                        object-api-name="Event"
-                      >
-                        <div
-                          class="slds-text-heading_small slds-truncate event-title-link"
-                          data-event-id={event.Id}
-                          onclick={handleEventClick}
+                      <span class="th-label">{col.label}</span>
+                      <template lwc:if={col.isSorted}>
+                        <svg
+                          class="sort-icon"
+                          viewBox="0 0 16 16"
+                          fill="none"
+                          aria-hidden="true"
                         >
-                          {event.Subject}
-                        </div>
-                      </c-record-hover-popover>
-                      <div
-                        class="slds-grid slds-grid_vertical-align-center slds-m-top_xx-small slds-wrap"
-                      >
-                        <template lwc:if={event.Location}>
-                          <div
-                            class="slds-m-right_medium slds-m-bottom_xx-small"
-                          >
-                            <lightning-icon
-                              icon-name="utility:location"
-                              size="xx-small"
-                              class="slds-m-right_xx-small"
-                            ></lightning-icon>
-                            <span
-                              class="slds-text-body_small slds-text-color_weak"
-                              >{event.Location}</span
-                            >
-                          </div>
-                        </template>
-                        <template lwc:if={event.relatedName}>
-                          <div
-                            class="slds-m-right_medium slds-m-bottom_xx-small"
-                          >
-                            <lightning-icon
-                              icon-name="utility:company"
-                              size="xx-small"
-                              class="slds-m-right_xx-small"
-                            ></lightning-icon>
-                            <c-record-hover-popover
-                              record-id={event.relatedId}
-                              object-api-name="Account"
-                            >
-                              <a
-                                href="javascript:void(0)"
-                                class="slds-text-body_small account-link"
-                                data-account-id={event.relatedId}
-                                onclick={handleAccountClick}
-                              >
-                                {event.relatedName}
-                              </a>
-                            </c-record-hover-popover>
-                          </div>
-                        </template>
-                        <template lwc:if={event.whoName}>
-                          <div class="slds-m-bottom_xx-small">
-                            <lightning-icon
-                              icon-name="utility:user"
-                              size="xx-small"
-                              class="slds-m-right_xx-small"
-                            ></lightning-icon>
-                            <c-record-hover-popover
-                              record-id={event.whoId}
-                              object-api-name="Contact"
-                            >
-                              <a
-                                href="javascript:void(0)"
-                                class="slds-text-body_small contact-link"
-                                data-contact-id={event.whoId}
-                                onclick={handleContactClick}
-                              >
-                                {event.whoName}
-                              </a>
-                            </c-record-hover-popover>
-                          </div>
-                        </template>
-                      </div>
-                      <template lwc:if={event.Recap_Completed__c}>
-                        <div class="slds-m-top_xx-small">
-                          <lightning-icon
-                            icon-name="utility:success"
-                            size="xx-small"
-                            variant="success"
-                            class="slds-m-right_xx-small"
-                          ></lightning-icon>
-                          <span
-                            class="slds-text-body_small slds-text-color_success"
-                            >Recap completed</span
-                          >
-                        </div>
+                          <template lwc:if={col.isSortedAsc}>
+                            <path
+                              d="M8 3.5v9M4.5 7L8 3.5 11.5 7"
+                              stroke="currentColor"
+                              stroke-width="1.5"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                            />
+                          </template>
+                          <template lwc:if={col.isSortedDesc}>
+                            <path
+                              d="M8 12.5v-9M11.5 9L8 12.5 4.5 9"
+                              stroke="currentColor"
+                              stroke-width="1.5"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                            />
+                          </template>
+                        </svg>
                       </template>
                     </div>
-
-                    <!-- Action Column -->
-                    <div
-                      class="slds-col slds-size_3-of-12 slds-text-align_right event-action-column"
+                  </th>
+                </template>
+                <th class="th-cell th-cell--action">
+                  <div class="th-content th-content--static">
+                    <span class="th-label">Actions</span>
+                  </div>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <template for:each={sortedEvents} for:item="event">
+                <tr key={event.Id} class="table-row">
+                  <!-- Time -->
+                  <td class="td-cell td-cell--time">
+                    <span class="time-primary"
+                      >{event.formattedStartTime}</span
                     >
-                      <div class="event-action-wrapper">
-                        <template lwc:if={event.showRecapButton}>
-                          <lightning-button
-                            variant="brand"
-                            label="Recap Meeting"
-                            onclick={handleRecapClick}
-                            data-event-id={event.Id}
-                            size="small"
-                          ></lightning-button>
-                        </template>
-                        <template lwc:elseif={event.Recap_Completed__c}>
-                          <lightning-button
-                            variant="neutral"
-                            label="View Recap"
-                            onclick={handleViewRecap}
-                            data-event-id={event.Id}
-                            size="small"
-                          ></lightning-button>
-                        </template>
-                        <template lwc:elseif={event.isNow}>
-                          <div class="slds-grid slds-gutters_xx-small">
-                            <div class="slds-col">
-                              <lightning-button
-                                variant="neutral"
-                                label="View Prep"
-                                onclick={handleViewPrep}
-                                data-event-id={event.Id}
-                                size="small"
-                              ></lightning-button>
-                            </div>
-                            <div class="slds-col">
-                              <lightning-button
-                                variant="brand"
-                                label="Create Recap"
-                                onclick={handleRecapClick}
-                                data-event-id={event.Id}
-                                size="small"
-                              ></lightning-button>
-                            </div>
-                          </div>
-                        </template>
-                        <template lwc:elseif={event.isUpcoming}>
-                          <lightning-button
-                            variant="success"
-                            label="Prep for Meeting"
-                            onclick={handlePrepClick}
-                            data-event-id={event.Id}
-                            size="small"
-                          ></lightning-button>
-                        </template>
+                    <span class="time-secondary">{event.durationText}</span>
+                  </td>
+
+                  <!-- Meeting -->
+                  <td class="td-cell td-cell--meeting">
+                    <c-record-hover-popover
+                      record-id={event.Id}
+                      object-api-name="Event"
+                    >
+                      <a
+                        href="javascript:void(0)"
+                        class="meeting-link"
+                        data-event-id={event.Id}
+                        onclick={handleEventClick}
+                      >
+                        {event.Subject}
+                      </a>
+                    </c-record-hover-popover>
+                    <template lwc:if={event.Recap_Completed__c}>
+                      <span class="recap-indicator">
+                        <lightning-icon
+                          icon-name="utility:success"
+                          size="xx-small"
+                          variant="success"
+                        ></lightning-icon>
+                      </span>
+                    </template>
+                  </td>
+
+                  <!-- Contact -->
+                  <td class="td-cell">
+                    <template lwc:if={event.whoName}>
+                      <div class="cell-with-icon">
+                        <lightning-icon
+                          icon-name="utility:user"
+                          size="xx-small"
+                          class="cell-icon"
+                        ></lightning-icon>
+                        <c-record-hover-popover
+                          record-id={event.whoId}
+                          object-api-name="Contact"
+                        >
+                          <a
+                            href="javascript:void(0)"
+                            class="record-link"
+                            data-contact-id={event.whoId}
+                            onclick={handleContactClick}
+                          >
+                            {event.whoName}
+                          </a>
+                        </c-record-hover-popover>
                       </div>
-                    </div>
-                  </div>
-                </li>
+                    </template>
+                    <template lwc:else>
+                      <span class="empty-cell">&mdash;</span>
+                    </template>
+                  </td>
+
+                  <!-- Account -->
+                  <td class="td-cell">
+                    <template lwc:if={event.relatedName}>
+                      <div class="cell-with-icon">
+                        <lightning-icon
+                          icon-name="utility:company"
+                          size="xx-small"
+                          class="cell-icon"
+                        ></lightning-icon>
+                        <c-record-hover-popover
+                          record-id={event.relatedId}
+                          object-api-name="Account"
+                        >
+                          <a
+                            href="javascript:void(0)"
+                            class="record-link"
+                            data-account-id={event.relatedId}
+                            onclick={handleAccountClick}
+                          >
+                            {event.relatedName}
+                          </a>
+                        </c-record-hover-popover>
+                      </div>
+                    </template>
+                    <template lwc:elseif={event.contactAccountName}>
+                      <div class="cell-with-icon">
+                        <lightning-icon
+                          icon-name="utility:company"
+                          size="xx-small"
+                          class="cell-icon"
+                        ></lightning-icon>
+                        <c-record-hover-popover
+                          record-id={event.contactAccountId}
+                          object-api-name="Account"
+                        >
+                          <a
+                            href="javascript:void(0)"
+                            class="record-link"
+                            data-account-id={event.contactAccountId}
+                            onclick={handleAccountClick}
+                          >
+                            {event.contactAccountName}
+                          </a>
+                        </c-record-hover-popover>
+                      </div>
+                    </template>
+                    <template lwc:else>
+                      <span class="empty-cell">&mdash;</span>
+                    </template>
+                  </td>
+
+                  <!-- Location -->
+                  <td class="td-cell td-cell--location">
+                    <template lwc:if={event.Location}>
+                      <div class="cell-with-icon">
+                        <lightning-icon
+                          icon-name="utility:location"
+                          size="xx-small"
+                          class="cell-icon"
+                        ></lightning-icon>
+                        <span class="location-text">{event.Location}</span>
+                      </div>
+                    </template>
+                    <template lwc:else>
+                      <span class="empty-cell">&mdash;</span>
+                    </template>
+                  </td>
+
+                  <!-- Status -->
+                  <td class="td-cell">
+                    <template lwc:if={event.isPast}>
+                      <span class="status-badge status-badge--ended"
+                        >Ended</span
+                      >
+                    </template>
+                    <template lwc:elseif={event.isNow}>
+                      <span class="status-badge status-badge--live"
+                        >In Progress</span
+                      >
+                    </template>
+                    <template lwc:else>
+                      <span class="status-badge status-badge--upcoming"
+                        >Upcoming</span
+                      >
+                    </template>
+                  </td>
+
+                  <!-- Action -->
+                  <td class="td-cell td-cell--action">
+                    <template lwc:if={event.showRecapButton}>
+                      <lightning-button
+                        variant="brand"
+                        label="Recap Meeting"
+                        onclick={handleRecapClick}
+                        data-event-id={event.Id}
+                        size="small"
+                      ></lightning-button>
+                    </template>
+                    <template lwc:elseif={event.Recap_Completed__c}>
+                      <lightning-button
+                        variant="neutral"
+                        label="View Recap"
+                        onclick={handleViewRecap}
+                        data-event-id={event.Id}
+                        size="small"
+                      ></lightning-button>
+                    </template>
+                    <template lwc:elseif={event.isNow}>
+                      <div class="action-group">
+                        <lightning-button
+                          variant="neutral"
+                          label="View Prep"
+                          onclick={handleViewPrep}
+                          data-event-id={event.Id}
+                          size="small"
+                        ></lightning-button>
+                        <lightning-button
+                          variant="brand"
+                          label="Create Recap"
+                          onclick={handleRecapClick}
+                          data-event-id={event.Id}
+                          size="small"
+                        ></lightning-button>
+                      </div>
+                    </template>
+                    <template lwc:elseif={event.isUpcoming}>
+                      <lightning-button
+                        variant="success"
+                        label="Prep for Meeting"
+                        onclick={handlePrepClick}
+                        data-event-id={event.Id}
+                        size="small"
+                      ></lightning-button>
+                    </template>
+                  </td>
+                </tr>
               </template>
-            </ul>
-          </div>
+            </tbody>
+          </table>
         </div>
       </template>
 
-      <!-- Empty State -->
+      <!-- Card Body: Empty State -->
       <template lwc:if={showEmptyState}>
-        <div class="slds-card empty-state-card">
-          <div class="slds-card__body slds-card__body_inner">
-            <div class="empty-state-container">
-              <div class="empty-state-icon-wrapper">
-                <lightning-icon
-                  icon-name="standard:event"
-                  size="xx-large"
-                  class="empty-state-icon"
-                ></lightning-icon>
-              </div>
-
-              <div class="empty-state-content">
-                <h2
-                  class="slds-text-heading_large slds-text-color_default slds-m-bottom_x-small"
-                >
-                  {emptyStateTitle}
-                </h2>
-                <p
-                  class="slds-text-body_regular slds-text-color_weak slds-m-bottom_medium"
-                >
-                  {emptyStateMessage}
-                </p>
-
-                <div
-                  class="empty-state-actions slds-grid slds-grid_align-center slds-gutters_small"
-                >
-                  <div class="slds-col">
-                    <lightning-button
-                      variant="brand"
-                      label="Create Meeting"
-                      icon-name="utility:add"
-                      onclick={handleCreateMeeting}
-                      class="empty-state-button"
-                    ></lightning-button>
-                  </div>
-                  <div class="slds-col">
-                    <lightning-button
-                      variant="neutral"
-                      label="View Calendar"
-                      icon-name="utility:date_time"
-                      onclick={handleViewCalendar}
-                      class="empty-state-button"
-                    ></lightning-button>
-                  </div>
-                </div>
-
-                <div class="empty-state-suggestions slds-m-top_large">
-                  <div
-                    class="slds-text-heading_small slds-text-color_weak slds-m-bottom_small"
-                  >
-                    Quick Actions
-                  </div>
-                  <div
-                    class="slds-grid slds-grid_vertical slds-gutters_xx-small"
-                  >
-                    <div class="slds-col suggestion-item">
-                      <lightning-icon
-                        icon-name="utility:preview"
-                        size="x-small"
-                        class="slds-m-right_x-small"
-                      ></lightning-icon>
-                      <span class="slds-text-body_small"
-                        >Review upcoming meetings for this week</span
-                      >
-                    </div>
-                    <div class="slds-col suggestion-item">
-                      <lightning-icon
-                        icon-name="utility:task"
-                        size="x-small"
-                        class="slds-m-right_x-small"
-                      ></lightning-icon>
-                      <span class="slds-text-body_small"
-                        >Catch up on pending tasks and follow-ups</span
-                      >
-                    </div>
-                    <div class="slds-col suggestion-item">
-                      <lightning-icon
-                        icon-name="utility:forward"
-                        size="x-small"
-                        class="slds-m-right_x-small"
-                      ></lightning-icon>
-                      <span class="slds-text-body_small"
-                        >Prepare for tomorrow's meetings</span
-                      >
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+        <div class="meetings-card__empty">
+          <div class="empty-state-icon-wrapper">
+            <lightning-icon
+              icon-name="standard:event"
+              size="large"
+              class="empty-state-icon"
+            ></lightning-icon>
+          </div>
+          <h2 class="empty-state__title">{emptyStateTitle}</h2>
+          <p class="empty-state__message">{emptyStateMessage}</p>
+          <div class="empty-state__actions">
+            <lightning-button
+              variant="brand"
+              label="Create Meeting"
+              icon-name="utility:add"
+              onclick={handleCreateMeeting}
+            ></lightning-button>
+            <lightning-button
+              variant="neutral"
+              label="View Calendar"
+              icon-name="utility:date_time"
+              onclick={handleViewCalendar}
+            ></lightning-button>
           </div>
         </div>
       </template>
-
-      <!-- Recap Modal -->
-      <c-meeting-recap-modal
-        lwc:if={showRecapModal}
-        event-id={selectedEventId}
-        event-subject={selectedEventSubject}
-        account-name={selectedEventAccountName}
-        account-id={selectedEventAccountId}
-        contact-name={selectedEventContactName}
-        contact-id={selectedEventContactId}
-        onclose={handleModalClose}
-        onsave={handleRecapSave}
-      ></c-meeting-recap-modal>
     </div>
+
+    <!-- Recap Modal -->
+    <c-meeting-recap-modal
+      lwc:if={showRecapModal}
+      event-id={selectedEventId}
+      event-subject={selectedEventSubject}
+      account-name={selectedEventAccountName}
+      account-id={selectedEventAccountId}
+      contact-name={selectedEventContactName}
+      contact-id={selectedEventContactId}
+      onclose={handleModalClose}
+      onsave={handleRecapSave}
+    ></c-meeting-recap-modal>
   </div>
 </template>

@@ -8,32 +8,41 @@ The Meeting Command Center provides a comprehensive dashboard for viewing daily 
 
 ## Features
 
-- **Daily Meeting View**: View all meetings for a selected date with intuitive navigation
-- **AI-Powered Meeting Recaps**: Automatically generate comprehensive meeting summaries using Salesforce's Models API
-- **Voice Transcription**: Record and transcribe meeting notes using Deepgram API integration
-- **Meeting Preparation**: Access meeting prep information and related account/contact details
+- **Daily Meeting View**: Sortable meeting list with date navigation and contact-account mapping
+- **AI-Powered Meeting Recaps**: Generate meeting summaries using Salesforce's Models API
+- **Voice Transcription**: Record and transcribe meeting notes via Deepgram API
+- **Meeting Preparation**: Prep view with competitive intelligence powered by Tavily API
+- **Agentforce Integration**: GenAI plugin for generating meeting prep via Agentforce
 - **Actionable Next Steps**: Convert meeting outcomes into Tasks and Events with AI-generated content
 
 ## Components
 
 ### Lightning Web Components
-- `meetingCommandCenter` - Main dashboard component
+- `meetingCommandCenter` - Main dashboard component with sortable meeting list
+- `meetingPrepEventComponent` - Meeting preparation detail view with account/contact intelligence
+- `meetingRecap` - Meeting recap display component
 - `meetingRecapModal` - Modal for creating meeting recaps with voice transcription
 - `recordHoverPopover` - Hover popover showing record details
 
 ### Apex Classes
-- `MeetingCommandCenterController` - Main controller with methods for fetching events, generating AI content, and managing recaps
+- `MeetingCommandCenterController` - Main controller for fetching events, contact-account mapping, generating AI content, and managing recaps
+- `MeetingPrepIntelligence` - Competitive intelligence and meeting prep research via Tavily API
 - `MeetingRecapController` - Controller for fetching meeting recap data
+
+### Agentforce
+- `Meeting_Intelligence` - GenAI plugin for Agentforce with `Generate_Meeting_Prep` function
 
 ## Dependencies
 
 ### Key Dependencies
 - **Custom Objects**: `Meeting_Recap__c`, `Meeting_Prep__c`
-- **Custom Metadata**: 
+- **Activity Custom Fields**: `AI_Key_Outcomes__c`, `AI_Meeting_Summary__c`, `AI_Next_Steps__c`, `Recap_Completed__c`
+- **Custom Metadata**:
   - `Tavily_API_Config__mdt` (REQUIRED, for competitive intelligence)
   - `Deepgram_API_Config__mdt` (REQUIRED, for voice transcription)
 - **Static Resources**: `AgentforceRGBIcon`
 - **Salesforce AI Platform**: Einstein Generative AI (Models API)
+- **GenAI Plugin**: `Meeting_Intelligence` (Agentforce integration)
 - **External APIs**: Tavily API and Deepgram API (both offer free tiers)
 
 ## Installation
@@ -99,10 +108,14 @@ Ensure Einstein Generative AI is enabled in your org (step 3 above). The compone
 
 ## Testing
 
-Run the test class:
+Run the test classes:
 ```bash
-sf apex run test --class-names MeetingCommandCenterControllerTest --result-format human
+sf apex run test --class-names MeetingCommandCenterControllerTest MeetingPrepIntelligenceTest --result-format human
 ```
+
+## Helper Scripts
+
+Anonymous Apex scripts for creating test data are in `scripts/apex/`.
 
 ## License
 
