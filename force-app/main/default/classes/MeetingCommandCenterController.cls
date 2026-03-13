@@ -9,7 +9,7 @@ public with sharing class MeetingCommandCenterController {
    * @param selectedDate The date to fetch events for (ISO string format YYYY-MM-DD). If null, uses today.
    * @return List of Event records with related data
    */
-  @AuraEnabled(cacheable=true)
+  @AuraEnabled
   public static List<Event> getTodaysEvents(String selectedDate) {
     // Parse the selected date or use today
     Date targetDate;
