@@ -480,7 +480,7 @@
                     <template lwc:elseif={event.Recap_Completed__c}>
                       <lightning-button
                         variant="neutral"
-                        label="View Recap"
+                        label="Recap"
                         onclick={handleViewRecap}
                         data-event-id={event.Id}
                         size="small"
@@ -489,15 +489,15 @@
                     <template lwc:elseif={event.isNow}>
                       <div class="action-group">
                         <lightning-button
-                          variant="neutral"
-                          label="View Prep"
+                          variant="success"
+                          label="Prep"
                           onclick={handleViewPrep}
                           data-event-id={event.Id}
                           size="small"
                         ></lightning-button>
                         <lightning-button
                           variant="brand"
-                          label="Create Recap"
+                          label="Recap"
                           onclick={handleRecapClick}
                           data-event-id={event.Id}
                           size="small"
