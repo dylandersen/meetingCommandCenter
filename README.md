@@ -1,130 +1,114 @@
+<div align="center">
+
 # Meeting Command Center
 
-A Salesforce Lightning Web Component for managing daily meetings and creating AI-powered meeting recaps.
+Salesforce + Agentforce app for running your day and turning meetings into AI-powered recaps.
 
-## Overview
+[Project](#project) - [What It Includes](#what-it-includes) - [Get Started](#get-started) - [Docs](#docs)
 
-The Meeting Command Center provides a comprehensive dashboard for viewing daily meetings, creating AI-powered recaps, and managing meeting-related activities. It integrates with Salesforce's Einstein Generative AI to automatically generate meeting summaries, key outcomes, and next steps.
+<img src="docs/app-screenshot.png" alt="Meeting Command Center dashboard" width="920" />
 
-## Features
+</div>
 
-- **Daily Meeting View**: Sortable meeting list with date navigation and contact-account mapping
-- **AI-Powered Meeting Recaps**: Generate meeting summaries using Salesforce's Models API
-- **Voice Transcription**: Record and transcribe meeting notes via Deepgram API
-- **Meeting Preparation**: Prep view with competitive intelligence powered by Tavily API
-- **Agentforce Integration**: GenAI plugin for generating meeting prep via Agentforce
-- **Actionable Next Steps**: Convert meeting outcomes into Tasks and Events with AI-generated content
+---
 
-## Components
+## Project
 
-### Lightning Web Components
-- `meetingCommandCenter` - Main dashboard component with sortable meeting list
-- `meetingPrepEventComponent` - Meeting preparation detail view with account/contact intelligence
-- `meetingRecap` - Meeting recap display component
-- `meetingRecapModal` - Modal for creating meeting recaps with voice transcription
-- `recordHoverPopover` - Hover popover showing record details
+Meeting Command Center is a Salesforce-native workspace for sellers who live in their
+calendar. It brings the day's meetings, the context behind each one, and AI-assisted
+follow-up into a single Lightning experience.
 
-### Apex Classes
-- `MeetingCommandCenterController` - Main controller for fetching events, contact-account mapping, generating AI content, and managing recaps
-- `MeetingPrepIntelligence` - Competitive intelligence and meeting prep research via Tavily API
-- `MeetingRecapController` - Controller for fetching meeting recap data
+The goal is simple: give reps one place to see what's on their schedule, prep with
+grounded account context before each meeting, and turn what happened afterward into a
+structured recap with suggested next steps - powered by Agentforce and the Einstein
+Models API.
 
-### Agentforce
-- `Meeting_Intelligence` - GenAI plugin for Agentforce with `Generate_Meeting_Prep` function
+## What It Includes
 
-## Dependencies
+| Area           | What is in the repo                                                                                                                                        |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Salesforce app | Custom objects, fields, flexipages, tabs, permission sets, and the Meeting Command Center Lightning experience.                                            |
+| Agentforce     | Einstein Generative AI (Models API) for meeting summaries, key outcomes, and next steps, plus a `Meeting_Intelligence` GenAI plugin for meeting prep.       |
+| Apex           | A thin controller facade over composable services for event/recap queries, CRM context, prompt construction, AI content generation, recap persistence, and transcription. |
+| LWC            | Command center dashboard, recap modal with voice capture, meeting prep components, and record hover popovers.                                              |
+| Integrations   | Deepgram for voice-to-text transcription and Tavily for competitive intelligence, both configured via Custom Metadata.                                     |
+| Docs           | Deployment and API setup guides for standing the app up in your own org.                                                                                   |
 
-### Key Dependencies
-- **Custom Objects**: `Meeting_Recap__c`, `Meeting_Prep__c`
-- **Activity Custom Fields**: `AI_Key_Outcomes__c`, `AI_Meeting_Summary__c`, `AI_Next_Steps__c`, `Recap_Completed__c`
-- **Custom Metadata**:
-  - `Tavily_API_Config__mdt` (REQUIRED, for competitive intelligence)
-  - `Deepgram_API_Config__mdt` (REQUIRED, for voice transcription)
-- **Static Resources**: `AgentforceRGBIcon`
-- **Salesforce AI Platform**: Einstein Generative AI (Models API)
-- **GenAI Plugin**: `Meeting_Intelligence` (Agentforce integration)
-- **External APIs**: Tavily API and Deepgram API (both offer free tiers)
+## Repository Map
 
-## Installation
+- `force-app/main/default` - Salesforce metadata source.
+- `force-app/main/default/classes` - Apex services, controllers, and tests.
+- `force-app/main/default/lwc` - Lightning Web Components.
+- `force-app/main/default/objects` - Custom objects and fields (`Meeting_Recap__c`, `Meeting_Prep__c`).
+- `force-app/main/default/genAiPlugins` & `genAiFunctions` - Agentforce meeting intelligence.
+- `scripts/apex` - Anonymous Apex helpers for seeding demo meetings.
+- `docs` - Screenshots and setup guides.
 
-### Prerequisites
+### Apex architecture
 
-**REQUIRED: Free API Keys**
+The controller is a thin `@AuraEnabled` facade that delegates to focused, composable services. The LWC contract is unchanged; each concern is independently testable.
 
-Before deploying, you **MUST** obtain free API keys from two services:
+| Class                            | Responsibility                                             |
+| -------------------------------- | --------------------------------------------------------- |
+| `MeetingCommandCenterController` | Public LWC entry points; delegates to the services below.  |
+| `MeetingDataService`             | Read-only event, recap, and prep queries.                 |
+| `MeetingContextService`          | Account / Contact context + AI activity summaries.        |
+| `MeetingContentService`          | AI subject/description generation for events and tasks.   |
+| `MeetingRecapService`            | Recap summarization and persistence.                      |
+| `MeetingTranscriptionService`    | Deepgram speech-to-text.                                   |
+| `MeetingPromptFactory`           | Prompt construction for every AI call.                    |
+| `MeetingAIGateway`               | Single Models API integration point.                      |
+| `MeetingUtils`                   | Shared JSON helpers.                                       |
+| `MeetingPrepIntelligence`        | Agentforce-invocable meeting prep generation.             |
+| `MeetingRecapController`         | Read controller for the recap record page.                |
 
-1. **Tavily API** (for competitive intelligence)
-   - Sign up at https://tavily.com/ (free, no credit card required)
-   - Get your API key from the dashboard
+## Get Started
 
-2. **Deepgram API** (for voice transcription)
-   - Sign up at https://www.deepgram.com/ (free, no credit card required)
-   - Get your API key from the dashboard
+Prerequisites:
 
-Both services offer generous free tiers perfect for development and testing.
+- Salesforce CLI.
+- A Salesforce org with Einstein Generative AI enabled.
+- Free API keys for [Deepgram](https://www.deepgram.com/) (voice transcription) and [Tavily](https://tavily.com/) (competitive intelligence) - both offer free tiers, no credit card required.
+- Node.js for local linting and LWC tests.
 
-### Deployment Steps
+```sh
+sf org login web --alias meeting-command-center
+sf project deploy start --source-dir force-app
+```
 
-1. Clone this repository:
-   ```bash
-   git clone https://github.com/dylandersen/meetingCommandCenter.git
-   ```
-2. **Get API Keys** (REQUIRED):
-   - Get free Tavily API key from https://tavily.com/
-   - Get free Deepgram API key from https://www.deepgram.com/
-   - See [DEEPGRAM_SETUP.md](./DEEPGRAM_SETUP.md) for detailed setup instructions
-3. Ensure Einstein Generative AI is enabled in your org
-4. Assign permission set `Meeting_Recap_All_Fields` to users who need access (after deployment)
-5. **Deploy to your Salesforce org** using Salesforce CLI:
-   ```bash
-   sf project deploy start --source-dir force-app
-   ```
-6. **Configure API Keys** (REQUIRED - after deployment):
-   - Update Custom Metadata records with your API keys:
-     - `Tavily_API_Config__mdt.Default` → Add your Tavily API key
-     - `Deepgram_API_Config__mdt.Default` → Add your Deepgram API key
-   - See [DEEPGRAM_SETUP.md](./DEEPGRAM_SETUP.md) for detailed setup instructions
+After deploying, finish setup in the org:
 
-### Einstein Generative AI
-Ensure Einstein Generative AI is enabled in your org (step 3 above). The component uses the `sfdc_ai__DefaultOpenAIGPT4Omni` model.
+1. Assign the `Meeting_Recap_All_Fields` permission set to your users.
+2. Add your API keys to the Custom Metadata records:
+   - `Deepgram_API_Config__mdt.Default`
+   - `Tavily_API_Config__mdt.Default`
+3. Add the Meeting Command Center component to a Lightning page or open its tab.
 
-## Deployment Order
+Run Apex tests when validating Salesforce behavior:
 
-1. Custom Metadata Types (if using Deepgram)
-2. Custom Objects and Fields
-3. Apex Classes
-4. Static Resources
-5. Lightning Web Components
-6. Permission Sets
-7. Flexipages/Tabs/Apps
+```sh
+sf apex run test --class-names MeetingCommandCenterControllerTest --result-format human
+```
 
 ## Usage
 
-1. Navigate to the Meeting Command Center tab or add the component to a Flexipage
-2. Use the date navigation arrows to view meetings for different dates
-3. Click "Recap Meeting" on past events to create AI-powered recaps
-4. Use "Prep for Meeting" on upcoming events to access meeting preparation
-5. View completed recaps by clicking "View Recap"
+1. Navigate to the Meeting Command Center tab or add the component to a Lightning page.
+2. Use the date navigation arrows to view meetings for any day.
+3. Click **Recap Meeting** on past events to capture notes (typed or by voice) and generate an AI recap with a summary, key outcomes, and next steps.
+4. Use **Prep for Meeting** on upcoming events to see related account and contact context at a glance.
+5. Review completed recaps directly from the dashboard.
 
-## Testing
+## Docs
 
-Run the test classes:
-```bash
-sf apex run test --class-names MeetingCommandCenterControllerTest MeetingPrepIntelligenceTest --result-format human
-```
+- [Deepgram setup guide](DEEPGRAM_SETUP.md)
 
-## Helper Scripts
+## Status
 
-Anonymous Apex scripts for creating test data are in `scripts/apex/`.
+This is a proof of concept, not a packaged product. The Salesforce metadata, Apex,
+LWCs, and demo assets are kept together so the full story can be reviewed, deployed,
+and iterated from one repository.
 
-## License
-
-This project is open source and free to use. See LICENSE file for details.
-
-## Support
-
-**No support is provided for this project.**
-
-For non-support requests, please contact Dylan Andersen at dylan.andersen@salesforce.com.
+**No support is provided for this project.** For non-support requests, contact Dylan
+Andersen at dylan.andersen@salesforce.com.
 
 **Author:** Dylan Andersen, Senior Solution Engineer, Agentforce at Salesforce
