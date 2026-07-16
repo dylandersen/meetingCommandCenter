@@ -1,95 +1,111 @@
 <template>
-  <div class="app-container">
-    <!-- Loading State -->
-    <template lwc:if={isLoading}>
-      <div class="status-card">
-        <div class="status-card-content">
+  <lightning-card>
+    <div slot="title">
+      <div class="custom-header">
+        <div class="icon-container">
+          <lightning-icon
+            icon-name="utility:event"
+            size="small"
+            class="header-icon"
+          ></lightning-icon>
+        </div>
+        <div class="title-container">
+          <h2 class="card-title">Meeting Recap</h2>
+          <div class="powered-by">Powered by <b>Agentforce ✨</b></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="slds-p-around_medium">
+      <!-- Loading State -->
+      <template lwc:if={isLoading}>
+        <div class="loading-container">
           <lightning-spinner
             alternative-text="Loading meeting recap..."
             size="medium"
           ></lightning-spinner>
-          <p class="status-text">Loading meeting recap...</p>
+          <p class="loading-text">Loading meeting recap...</p>
         </div>
-      </div>
-    </template>
+      </template>
 
-    <!-- Error State -->
-    <template lwc:if={error}>
-      <div class="status-card">
-        <div class="status-card-content">
-          <lightning-icon
-            icon-name="utility:error"
-            size="medium"
-            variant="error"
-          ></lightning-icon>
-          <p class="status-text status-text--error">{error}</p>
+      <!-- Error State -->
+      <template lwc:if={error}>
+        <div class="slds-box slds-theme_error slds-m-bottom_medium">
+          <p class="slds-text-color_error">{error}</p>
         </div>
-      </div>
-    </template>
+      </template>
 
-    <!-- Event Details Card -->
-    <template lwc:if={eventData}>
-      <div class="details-card">
-        <div class="details-card-content">
-          <h2
-            class="event-subject"
-            onclick={handleEventTitleClick}
-            title="Click to open Event record"
-          >
-            {eventData.Subject}
-          </h2>
+      <!-- Event Details Header -->
+      <template lwc:if={eventData}>
+        <div class="event-details-header slds-m-bottom_large">
+          <div class="slds-grid slds-grid_align-spread slds-wrap">
+            <!-- Event Subject -->
+            <div class="slds-col slds-size_1-of-1 slds-m-bottom_medium">
+              <h1
+                class="event-subject event-subject-link"
+                onclick={handleEventTitleClick}
+                title="Click to open Event record"
+              >
+                {eventData.Subject}
+              </h1>
+            </div>
 
-          <div class="details-grid">
             <!-- Date/Time -->
-            <div class="detail-item">
-              <div class="detail-icon-container">
+            <div
+              class="detail-item slds-col slds-size_1-of-2 slds-medium-size_1-of-4"
+            >
+              <div class="detail-icon-container date-icon">
                 <lightning-icon
                   icon-name="utility:date_time"
-                  size="xx-small"
+                  size="small"
                   class="detail-icon"
                 ></lightning-icon>
               </div>
               <div class="detail-content">
-                <span class="detail-label">Date & Time</span>
-                <span class="detail-value">{formattedStartDateTime}</span>
+                <div class="detail-label">Date & Time</div>
+                <div class="detail-value">{formattedStartDateTime}</div>
                 <template lwc:if={formattedEndTime}>
-                  <span class="detail-meta">Until {formattedEndTime}</span>
+                  <div class="detail-value-small">Until {formattedEndTime}</div>
                 </template>
                 <template lwc:if={formattedDuration}>
-                  <span class="detail-meta">({formattedDuration})</span>
+                  <div class="detail-value-small">({formattedDuration})</div>
                 </template>
               </div>
             </div>
 
             <!-- Location -->
             <template lwc:if={eventData.Location}>
-              <div class="detail-item">
-                <div class="detail-icon-container">
+              <div
+                class="detail-item slds-col slds-size_1-of-2 slds-medium-size_1-of-4"
+              >
+                <div class="detail-icon-container location-icon">
                   <lightning-icon
                     icon-name="utility:location"
-                    size="xx-small"
+                    size="small"
                     class="detail-icon"
                   ></lightning-icon>
                 </div>
                 <div class="detail-content">
-                  <span class="detail-label">Location</span>
-                  <span class="detail-value">{eventData.Location}</span>
+                  <div class="detail-label">Location</div>
+                  <div class="detail-value">{eventData.Location}</div>
                 </div>
               </div>
             </template>
 
             <!-- Account -->
             <template lwc:if={accountId}>
-              <div class="detail-item">
-                <div class="detail-icon-container">
+              <div
+                class="detail-item slds-col slds-size_1-of-2 slds-medium-size_1-of-4"
+              >
+                <div class="detail-icon-container account-icon">
                   <lightning-icon
                     icon-name="utility:company"
-                    size="xx-small"
+                    size="small"
                     class="detail-icon"
                   ></lightning-icon>
                 </div>
                 <div class="detail-content">
-                  <span class="detail-label">Account</span>
+                  <div class="detail-label">Account</div>
                   <a
                     href="javascript:void(0)"
                     class="detail-link"
@@ -103,16 +119,18 @@
 
             <!-- Contact -->
             <template lwc:if={contactId}>
-              <div class="detail-item">
-                <div class="detail-icon-container">
+              <div
+                class="detail-item slds-col slds-size_1-of-2 slds-medium-size_1-of-4"
+              >
+                <div class="detail-icon-container contact-icon">
                   <lightning-icon
                     icon-name="utility:user"
-                    size="xx-small"
+                    size="small"
                     class="detail-icon"
                   ></lightning-icon>
                 </div>
                 <div class="detail-content">
-                  <span class="detail-label">Contact</span>
+                  <div class="detail-label">Contact</div>
                   <a
                     href="javascript:void(0)"
                     class="detail-link"
@@ -125,140 +143,237 @@
             </template>
           </div>
         </div>
-      </div>
 
-      <!-- Empty State -->
-      <template lwc:if={hasNoRecapData}>
-        <div class="status-card">
-          <div class="status-card-content">
-            <div class="empty-icon-wrapper">
-              <lightning-icon
-                icon-name="standard:event"
-                size="large"
-                class="empty-icon"
-              ></lightning-icon>
+        <!-- Updated Fields from Recap -->
+        <template lwc:if={hasFieldChanges}>
+          <div class="changes-card slds-m-bottom_large">
+            <div class="changes-card-header">
+              <div class="changes-icon-container">
+                <lightning-icon
+                  icon-name="utility:sync"
+                  size="small"
+                  class="changes-header-icon"
+                ></lightning-icon>
+              </div>
+              <div class="changes-title-block">
+                <h3 class="changes-title">Updated Fields from Recap</h3>
+                <p class="changes-subtitle">
+                  {fieldChangeCountLabel} applied to your records
+                </p>
+              </div>
             </div>
-            <h3 class="empty-title">No Meeting Recap Available</h3>
-            <p class="empty-message">
+
+            <div class="changes-table-wrapper">
+              <table class="changes-table" aria-label="Field changes">
+                <thead>
+                  <tr>
+                    <th class="col-field">Field</th>
+                    <th class="col-prev">Previous Value</th>
+                    <th class="col-new">New Value</th>
+                    <th class="col-ai">AI Suggested</th>
+                    <th class="col-source">Source</th>
+                    <th class="col-when">Updated</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <template for:each={fieldChanges} for:item="chg">
+                    <tr key={chg.id}>
+                      <td class="col-field" data-label="Field">
+                        <span class="field-name">{chg.fieldLabel}</span>
+                        <template lwc:if={chg.objectName}>
+                          <span class="field-object">{chg.objectName}</span>
+                        </template>
+                      </td>
+                      <td class="col-prev" data-label="Previous Value">
+                        <span class="val-prev">{chg.previousValue}</span>
+                      </td>
+                      <td class="col-new" data-label="New Value">
+                        <span class="val-new">{chg.newValue}</span>
+                      </td>
+                      <td class="col-ai" data-label="AI Suggested">
+                        <span class="val-ai">{chg.aiSuggestedValue}</span>
+                      </td>
+                      <td class="col-source" data-label="Source">
+                        <span class={chg.badgeClass}>
+                          <lightning-icon
+                            icon-name={chg.badgeIcon}
+                            size="xx-small"
+                            class="badge-icon"
+                          ></lightning-icon>
+                          {chg.sourceLabel}
+                        </span>
+                      </td>
+                      <td class="col-when" data-label="Updated">
+                        <span class="when-date">{chg.changedOn}</span>
+                        <template lwc:if={chg.changedBy}>
+                          <span class="when-by">by {chg.changedBy}</span>
+                        </template>
+                      </td>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </template>
+
+        <!-- Empty State -->
+        <template lwc:if={hasNoRecapData}>
+          <div class="empty-state-container">
+            <lightning-icon
+              icon-name="utility:summary"
+              size="large"
+              class="empty-state-icon"
+            ></lightning-icon>
+            <h3 class="empty-state-title">No Meeting Recap Available</h3>
+            <p class="empty-state-text">
               This meeting hasn't been recapped yet. Use the Meeting Command
               Center to generate an AI-powered recap after your meeting.
             </p>
           </div>
-        </div>
-      </template>
+        </template>
 
-      <!-- Recap Content Cards -->
-      <template lwc:if={hasRecapData}>
-        <div class="recap-grid">
-          <!-- Meeting Summary -->
-          <template lwc:if={hasSummary}>
-            <div class="recap-card">
-              <div class="recap-card-header">
-                <lightning-icon
-                  icon-name="utility:summary"
-                  size="small"
-                  class="recap-header-icon recap-header-icon--summary"
-                ></lightning-icon>
-                <h3 class="recap-card-title">Meeting Summary</h3>
+        <!-- Recap Cards -->
+        <template lwc:if={hasRecapData}>
+          <div class="recap-cards-grid">
+            <!-- AI Meeting Summary Card -->
+            <template lwc:if={hasSummary}>
+              <div class="recap-card summary-card">
+                <div class="card-header">
+                  <div class="card-icon-container summary-icon-container">
+                    <lightning-icon
+                      icon-name="utility:summary"
+                      size="small"
+                      class="card-icon"
+                    ></lightning-icon>
+                  </div>
+                  <h3 class="card-title-text">Meeting Summary</h3>
+                </div>
+                <div class="card-content">
+                  <lightning-formatted-rich-text
+                    value={eventData.AI_Meeting_Summary__c}
+                    class="recap-text"
+                  ></lightning-formatted-rich-text>
+                </div>
               </div>
-              <div class="recap-card-body">
-                <lightning-formatted-rich-text
-                  value={eventData.AI_Meeting_Summary__c}
-                  class="recap-text"
-                ></lightning-formatted-rich-text>
-              </div>
-            </div>
-          </template>
+            </template>
 
-          <!-- Key Outcomes -->
-          <template lwc:if={hasKeyOutcomes}>
-            <div class="recap-card">
-              <div class="recap-card-header">
-                <lightning-icon
-                  icon-name="utility:success"
-                  size="small"
-                  class="recap-header-icon recap-header-icon--outcomes"
-                ></lightning-icon>
-                <h3 class="recap-card-title">Key Outcomes</h3>
+            <!-- AI Key Outcomes Card -->
+            <template lwc:if={hasKeyOutcomes}>
+              <div class="recap-card outcomes-card">
+                <div class="card-header">
+                  <div class="card-icon-container outcomes-icon-container">
+                    <lightning-icon
+                      icon-name="utility:success"
+                      size="small"
+                      class="card-icon"
+                    ></lightning-icon>
+                  </div>
+                  <h3 class="card-title-text">Key Outcomes</h3>
+                </div>
+                <div class="card-content">
+                  <lightning-formatted-rich-text
+                    value={formattedKeyOutcomes}
+                    class="recap-text"
+                  ></lightning-formatted-rich-text>
+                </div>
               </div>
-              <div class="recap-card-body">
-                <lightning-formatted-rich-text
-                  value={formattedKeyOutcomes}
-                  class="recap-text"
-                ></lightning-formatted-rich-text>
-              </div>
-            </div>
-          </template>
+            </template>
 
-          <!-- Next Steps -->
-          <template lwc:if={hasNextSteps}>
-            <div class="recap-card">
-              <div class="recap-card-header">
-                <lightning-icon
-                  icon-name="utility:forward"
-                  size="small"
-                  class="recap-header-icon recap-header-icon--nextsteps"
-                ></lightning-icon>
-                <h3 class="recap-card-title">Next Steps</h3>
+            <!-- AI Next Steps Card -->
+            <template lwc:if={hasNextSteps}>
+              <div class="recap-card nextsteps-card">
+                <div class="card-header">
+                  <div class="card-icon-container nextsteps-icon-container">
+                    <lightning-icon
+                      icon-name="utility:forward"
+                      size="small"
+                      class="card-icon"
+                    ></lightning-icon>
+                  </div>
+                  <h3 class="card-title-text">Next Steps</h3>
+                </div>
+                <div class="card-content">
+                  <lightning-formatted-rich-text
+                    value={formattedNextSteps}
+                    class="recap-text"
+                  ></lightning-formatted-rich-text>
+                </div>
               </div>
-              <div class="recap-card-body">
-                <lightning-formatted-rich-text
-                  value={formattedNextSteps}
-                  class="recap-text"
-                ></lightning-formatted-rich-text>
-              </div>
-            </div>
-          </template>
-        </div>
+            </template>
+          </div>
 
-        <!-- Recommended Actions -->
-        <template lwc:if={showActionButtons}>
-          <div class="actions-card">
-            <div class="actions-card-header">
-              <h3 class="actions-title">Recommended Actions</h3>
-            </div>
-            <div class="actions-grid">
-              <!-- Dynamic action buttons -->
-              <template for:each={actionableItems} for:item="action">
-                <div key={action.id} class="action-tile">
-                  <div class="action-tile-body">
-                    <div class="action-btn-wrap">
+          <!-- Action Buttons Section -->
+          <template lwc:if={showActionButtons}>
+            <div class="action-buttons-section">
+              <h3 class="action-section-title">Recommended Actions</h3>
+              <div class="action-buttons-grid">
+                <!-- Dynamic buttons for each actionable next step -->
+                <template for:each={actionableItems} for:item="action">
+                  <template lwc:if={action.isTask}>
+                    <div key={action.id} class="action-card action-card-task">
+                      <div class="action-card-body">
+                        <div class="action-button-container">
+                          <lightning-button
+                            variant={action.variant}
+                            icon-name={action.icon}
+                            label={action.label}
+                            title={action.text}
+                            onclick={handleActionClick}
+                            data-step-text={action.text}
+                            data-action-type={action.type}
+                            disabled={action.isLoading}
+                            is-loading={action.isLoading}
+                          ></lightning-button>
+                        </div>
+                        <div class="action-text" title={action.text}>
+                          {action.text}
+                        </div>
+                      </div>
+                    </div>
+                  </template>
+                  <template lwc:else>
+                    <div key={action.id} class="action-card action-card-event">
+                      <div class="action-card-body">
+                        <div class="action-button-container">
+                          <lightning-button
+                            variant={action.variant}
+                            icon-name={action.icon}
+                            label={action.label}
+                            title={action.text}
+                            onclick={handleActionClick}
+                            data-step-text={action.text}
+                            data-action-type={action.type}
+                            disabled={action.isLoading}
+                            is-loading={action.isLoading}
+                          ></lightning-button>
+                        </div>
+                        <div class="action-text" title={action.text}>
+                          {action.text}
+                        </div>
+                      </div>
+                    </div>
+                  </template>
+                </template>
+
+                <!-- Send to Slack button -->
+                <div class="action-card action-card-slack">
+                  <div class="action-card-body action-card-body-centered">
+                    <div class="action-button-container">
                       <lightning-button
-                        variant={action.variant}
-                        icon-name={action.icon}
-                        label={action.label}
-                        title={action.text}
-                        onclick={handleActionClick}
-                        data-step-text={action.text}
-                        data-action-type={action.type}
-                        disabled={action.isLoading}
-                        is-loading={action.isLoading}
+                        variant="brand"
+                        icon-name="utility:share"
+                        label="Send Recap to Slack"
+                        onclick={handleSendToSlack}
                       ></lightning-button>
                     </div>
-                    <p class="action-description" title={action.text}>
-                      {action.text}
-                    </p>
-                  </div>
-                </div>
-              </template>
-
-              <!-- Send to Slack -->
-              <div class="action-tile">
-                <div class="action-tile-body action-tile-body--centered">
-                  <div class="action-btn-wrap">
-                    <lightning-button
-                      variant="brand"
-                      icon-name="utility:share"
-                      label="Send Recap to Slack"
-                      onclick={handleSendToSlack}
-                    ></lightning-button>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
+          </template>
         </template>
       </template>
-    </template>
-  </div>
+    </div>
+  </lightning-card>
 </template>

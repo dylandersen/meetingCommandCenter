@@ -3,8 +3,6 @@ import { ShowToastEvent } from "lightning/platformShowToastEvent";
 import { NavigationMixin } from "lightning/navigation";
 import { WorkspaceAPI } from "lightning/platformWorkspaceApi";
 import generateMeetingPrep from "@salesforce/apex/MeetingPrepIntelligence.generateMeetingPrepFromLWC";
-import generateBriefOnly from "@salesforce/apex/MeetingPrepIntelligence.generateMeetingPrepBriefOnly";
-import generateIntelOnly from "@salesforce/apex/MeetingPrepIntelligence.generateCompetitiveIntelOnly";
 import getEventWithRelatedData from "@salesforce/apex/MeetingPrepIntelligence.getEventWithRelatedData";
 import AGENTFORCE_ICON from "@salesforce/resourceUrl/AgentforceRGBIcon";
 
@@ -16,8 +14,6 @@ export default class MeetingPrepEventComponent extends NavigationMixin(
   agentforceIcon = AGENTFORCE_ICON;
   prepBrief;
   @track isLoading = false;
-  @track isLoadingBrief = false;
-  @track isLoadingIntel = false;
   @track error;
   @track currentLoadingMessage = "";
   hasExistingPrep = false;
@@ -52,29 +48,16 @@ export default class MeetingPrepEventComponent extends NavigationMixin(
       });
   }
 
-  // Phase 1: Both loading
-  bothLoadingMessages = [
-    "Agentforce is analyzing your meeting context...",
-    "Gathering attendee profiles and account data...",
-    "Reviewing opportunities, cases, and activity...",
-    "Researching competitive intelligence in parallel...",
-    "Generating your strategic meeting prep brief..."
+  loadingMessages = [
+    "Analyzing meeting context with Agentforce...",
+    "Gathering attendee profiles...",
+    "Reviewing account health and opportunities...",
+    "Analyzing recent activity timeline...",
+    "Fetching competitive intelligence...",
+    "Generating strategic talking points...",
+    "Preparing questions and objection handling...",
+    "Finalizing your meeting prep brief..."
   ];
-
-  // Phase 2: Brief done, intel still loading
-  intelOnlyMessages = [
-    "Agentforce is almost done \u2014 finishing competitive intelligence...",
-    "Analyzing market positioning and recent news...",
-    "Wrapping up competitive insights for your meeting..."
-  ];
-
-  // Phase 3: Intel done, brief still loading (less common)
-  briefOnlyMessages = [
-    "Agentforce is finalizing your meeting prep brief...",
-    "Generating talking points and strategic questions...",
-    "Almost there \u2014 preparing your full brief..."
-  ];
-
   loadingMessageInterval = null;
   loadingMessageIndex = 0;
 
@@ -83,30 +66,11 @@ export default class MeetingPrepEventComponent extends NavigationMixin(
   }
 
   renderedCallback() {
-    // Render prep brief HTML into manual DOM (matches competitive intel approach)
-    if (
-      this.prepBrief &&
-      this.prepBrief.prepBriefHTML &&
-      !this.isLoadingBrief
-    ) {
-      const briefContainer = this.template.querySelector(
-        ".prep-brief-content"
-      );
-      if (briefContainer && !briefContainer._rendered) {
-        const wrapper = document.createElement("div");
-        wrapper.className = "prep-brief-inner-content";
-        // eslint-disable-next-line @lwc/lwc/no-inner-html
-        wrapper.innerHTML = this.prepBrief.prepBriefHTML;
-        briefContainer.appendChild(wrapper);
-        briefContainer._rendered = true;
-      }
-    }
-
     // Render competitive intel HTML when DOM is ready
     if (
       this.prepBrief &&
       this.prepBrief.competitiveIntelligence &&
-      !this.isLoadingIntel
+      !this.isLoading
     ) {
       const intelContainer = this.template.querySelector(
         ".column-right .content-body"
@@ -134,39 +98,17 @@ export default class MeetingPrepEventComponent extends NavigationMixin(
     );
   }
 
-  get activeLoadingMessages() {
-    if (this.isLoadingBrief && this.isLoadingIntel) {
-      return this.bothLoadingMessages;
-    } else if (this.isLoadingIntel) {
-      return this.intelOnlyMessages;
-    } else if (this.isLoadingBrief) {
-      return this.briefOnlyMessages;
-    }
-    return [];
-  }
-
   startLoadingMessages() {
     this.loadingMessageIndex = 0;
-    this.currentLoadingMessage = this.activeLoadingMessages[0] || "";
+    this.currentLoadingMessage = this.loadingMessages[this.loadingMessageIndex];
 
     // eslint-disable-next-line @lwc/lwc/no-async-operation
     this.loadingMessageInterval = setInterval(() => {
-      const messages = this.activeLoadingMessages;
-      if (messages.length > 0) {
-        this.loadingMessageIndex =
-          (this.loadingMessageIndex + 1) % messages.length;
-        this.currentLoadingMessage = messages[this.loadingMessageIndex];
-      }
-    }, 7000);
-  }
-
-  transitionLoadingMessages() {
-    // Reset index when switching phases so messages start fresh
-    this.loadingMessageIndex = 0;
-    const messages = this.activeLoadingMessages;
-    if (messages.length > 0) {
-      this.currentLoadingMessage = messages[0];
-    }
+      this.loadingMessageIndex =
+        (this.loadingMessageIndex + 1) % this.loadingMessages.length;
+      this.currentLoadingMessage =
+        this.loadingMessages[this.loadingMessageIndex];
+    }, 3000);
   }
 
   stopLoadingMessages() {
@@ -186,11 +128,7 @@ export default class MeetingPrepEventComponent extends NavigationMixin(
   }
 
   get showRegenerateButton() {
-    return this.hasPrep && !this.isLoading && !this.isLoadingBrief;
-  }
-
-  get showSkeletonLayout() {
-    return this.isLoadingBrief || this.isLoadingIntel;
+    return this.hasPrep && !this.isLoading;
   }
 
   handleGeneratePrep() {
@@ -203,30 +141,19 @@ export default class MeetingPrepEventComponent extends NavigationMixin(
 
   generatePrep(regenerate) {
     this.isLoading = true;
-    this.isLoadingBrief = true;
-    this.isLoadingIntel = true;
     this.error = undefined;
     this.startLoadingMessages();
 
-    // Fire both calls in parallel
-    const briefPromise = generateBriefOnly({
+    generateMeetingPrep({
       eventId: this.recordId,
       regenerate: regenerate
     })
       .then((result) => {
         if (result) {
           if (result.success) {
-            // Initialize or merge into prepBrief — preserve any intel already loaded
-            if (this.prepBrief) {
-              const existingIntel = this.prepBrief.competitiveIntelligence;
-              this.prepBrief = { ...result };
-              if (existingIntel) {
-                this.prepBrief.competitiveIntelligence = existingIntel;
-              }
-            } else {
-              this.prepBrief = { ...result };
-            }
+            this.prepBrief = result;
             this.hasExistingPrep = !regenerate;
+            this.showSuccessToast("Meeting prep generated successfully!");
           } else {
             this.error = result.message || "Unknown error occurred";
             this.showErrorToast(
@@ -242,47 +169,9 @@ export default class MeetingPrepEventComponent extends NavigationMixin(
         this.showErrorToast("Error generating meeting prep: " + this.error);
       })
       .finally(() => {
-        this.isLoadingBrief = false;
-        if (this.isLoadingIntel) {
-          this.transitionLoadingMessages();
-        }
+        this.isLoading = false;
+        this.stopLoadingMessages();
       });
-
-    const intelPromise = generateIntelOnly({
-      eventId: this.recordId,
-      regenerate: regenerate
-    })
-      .then((result) => {
-        if (result && result.success && result.competitiveIntelligence) {
-          if (this.prepBrief) {
-            this.prepBrief = {
-              ...this.prepBrief,
-              competitiveIntelligence: result.competitiveIntelligence
-            };
-          } else {
-            // Brief hasn't resolved yet — store intel for merge
-            this.prepBrief = { competitiveIntelligence: result.competitiveIntelligence };
-          }
-        }
-      })
-      .catch((error) => {
-        console.error("Error generating competitive intel:", error);
-        // Non-fatal — brief still works without intel
-      })
-      .finally(() => {
-        this.isLoadingIntel = false;
-        if (this.isLoadingBrief) {
-          this.transitionLoadingMessages();
-        }
-      });
-
-    Promise.all([briefPromise, intelPromise]).finally(() => {
-      this.isLoading = false;
-      this.stopLoadingMessages();
-      if (this.prepBrief && this.prepBrief.success) {
-        this.showSuccessToast("Meeting prep generated successfully!");
-      }
-    });
   }
 
   renderCompetitiveIntel() {

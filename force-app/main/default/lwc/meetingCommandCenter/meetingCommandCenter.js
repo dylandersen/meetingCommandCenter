@@ -2,8 +2,11 @@ import { LightningElement, track } from "lwc";
 import { ShowToastEvent } from "lightning/platformShowToastEvent";
 import { NavigationMixin } from "lightning/navigation";
 import { WorkspaceAPI } from "lightning/platformWorkspaceApi";
+import { updateRecord } from "lightning/uiRecordApi";
 import { encodeDefaultFieldValues } from "lightning/pageReferenceUtils";
 import TIME_ZONE from "@salesforce/i18n/timeZone";
+import EVENT_ID_FIELD from "@salesforce/schema/Event.Id";
+import EVENT_LOCATION_FIELD from "@salesforce/schema/Event.Location";
 import getTodaysEvents from "@salesforce/apex/MeetingCommandCenterController.getTodaysEvents";
 import getContactAccountMap from "@salesforce/apex/MeetingCommandCenterController.getContactAccountMap";
 import getMeetingRecapId from "@salesforce/apex/MeetingCommandCenterController.getMeetingRecapId";
@@ -23,6 +26,12 @@ export default class MeetingCommandCenter extends NavigationMixin(
   @track selectedEventAccountId = null;
   @track selectedEventContactName = null;
   @track selectedEventContactId = null;
+  @track showLocationModal = false;
+  @track selectedLocationEventId = null;
+  @track selectedLocationEventSubject = null;
+  @track locationDraft = "";
+  @track locationAddress = {};
+  @track isSavingLocation = false;
   @track selectedDate = new Date(); // Track the currently selected date
   @track sortField = "StartDateTime";
   @track sortDirection = "asc";
@@ -143,11 +152,7 @@ export default class MeetingCommandCenter extends NavigationMixin(
       }
     } catch (error) {
       this.error = error.body ? error.body.message : error.message;
-      this.showToast(
-        "Error",
-        "Failed to load events: " + this.error,
-        "error"
-      );
+      this.showToast("Error", "Failed to load events: " + this.error, "error");
     } finally {
       this.isLoading = false;
     }
@@ -239,6 +244,33 @@ export default class MeetingCommandCenter extends NavigationMixin(
     return selectedDateStr === todayDateStr;
   }
 
+  get todayButtonVariant() {
+    return this.isToday ? "brand" : "neutral";
+  }
+
+  get todayButtonTitle() {
+    return this.isToday ? "Viewing today's meetings" : "Go to today";
+  }
+
+  get selectedLocationTitle() {
+    return this.selectedLocationEventSubject
+      ? `Add Location: ${this.selectedLocationEventSubject}`
+      : "Add Location";
+  }
+
+  get locationSaveDisabled() {
+    return this.isSavingLocation || !this.normalizedLocationValue;
+  }
+
+  get normalizedLocationValue() {
+    const typedLocation = (this.locationDraft || "").trim();
+    if (typedLocation) {
+      return typedLocation;
+    }
+
+    return this.formatAddressLocation(this.locationAddress);
+  }
+
   get eventCountText() {
     const count = this.events.length;
     if (count === 0) return "No meetings";
@@ -328,9 +360,7 @@ export default class MeetingCommandCenter extends NavigationMixin(
 
       switch (this.sortField) {
         case "StartDateTime":
-          return (
-            dir * (new Date(a.StartDateTime) - new Date(b.StartDateTime))
-          );
+          return dir * (new Date(a.StartDateTime) - new Date(b.StartDateTime));
         case "Subject":
           valA = (a.Subject || "").toLowerCase();
           valB = (b.Subject || "").toLowerCase();
@@ -340,16 +370,8 @@ export default class MeetingCommandCenter extends NavigationMixin(
           valB = (b.whoName || "").toLowerCase();
           break;
         case "accountName":
-          valA = (
-            a.relatedName ||
-            a.contactAccountName ||
-            ""
-          ).toLowerCase();
-          valB = (
-            b.relatedName ||
-            b.contactAccountName ||
-            ""
-          ).toLowerCase();
+          valA = (a.relatedName || a.contactAccountName || "").toLowerCase();
+          valB = (b.relatedName || b.contactAccountName || "").toLowerCase();
           break;
         case "Location":
           valA = (a.Location || "").toLowerCase();
@@ -420,6 +442,101 @@ export default class MeetingCommandCenter extends NavigationMixin(
     }
   }
 
+  handleOpenLocationModal(event) {
+    event.stopPropagation();
+    const eventId = event.currentTarget.dataset.eventId;
+    const selectedEvent = this.events.find((evt) => evt.Id === eventId);
+
+    this.selectedLocationEventId = eventId;
+    this.selectedLocationEventSubject = selectedEvent?.Subject || null;
+    this.locationDraft = "";
+    this.locationAddress = {};
+    this.showLocationModal = true;
+  }
+
+  handleCloseLocationModal() {
+    if (this.isSavingLocation) {
+      return;
+    }
+
+    this.resetLocationModal();
+  }
+
+  handleLocationTextChange(event) {
+    this.locationDraft = event.target.value;
+  }
+
+  handleLocationAddressChange(event) {
+    this.locationAddress = {
+      street: event.detail.street,
+      city: event.detail.city,
+      province: event.detail.province,
+      country: event.detail.country,
+      postalCode: event.detail.postalCode
+    };
+  }
+
+  async handleSaveLocation() {
+    const locationValue = this.normalizedLocationValue;
+    if (!locationValue) {
+      this.showToast(
+        "Location Required",
+        "Enter or select a location.",
+        "error"
+      );
+      return;
+    }
+
+    this.isSavingLocation = true;
+
+    try {
+      const fields = {};
+      fields[EVENT_ID_FIELD.fieldApiName] = this.selectedLocationEventId;
+      fields[EVENT_LOCATION_FIELD.fieldApiName] = locationValue;
+
+      await updateRecord({ fields });
+
+      this.events = this.events.map((evt) => {
+        if (evt.Id === this.selectedLocationEventId) {
+          return {
+            ...evt,
+            Location: locationValue
+          };
+        }
+        return evt;
+      });
+
+      this.showToast("Success", "Meeting location updated.", "success");
+      this.resetLocationModal();
+    } catch (error) {
+      const message = error.body?.message || error.message;
+      this.showToast("Error", `Unable to update location: ${message}`, "error");
+    } finally {
+      this.isSavingLocation = false;
+    }
+  }
+
+  formatAddressLocation(address = {}) {
+    return [
+      address.street,
+      [address.city, address.province, address.postalCode]
+        .filter(Boolean)
+        .join(", "),
+      address.country
+    ]
+      .filter(Boolean)
+      .join(", ");
+  }
+
+  resetLocationModal() {
+    this.showLocationModal = false;
+    this.selectedLocationEventId = null;
+    this.selectedLocationEventSubject = null;
+    this.locationDraft = "";
+    this.locationAddress = {};
+    this.isSavingLocation = false;
+  }
+
   async navigateToRecord(recordId, objectApiName, activeTab = null) {
     const pageReference = {
       type: "standard__recordPage",
@@ -464,13 +581,9 @@ export default class MeetingCommandCenter extends NavigationMixin(
       this.selectedEventId = eventId;
       this.selectedEventSubject = selectedEvent.Subject;
       this.selectedEventAccountName =
-        selectedEvent.contactAccountName ||
-        selectedEvent.relatedName ||
-        null;
+        selectedEvent.contactAccountName || selectedEvent.relatedName || null;
       this.selectedEventAccountId =
-        selectedEvent.contactAccountId ||
-        selectedEvent.relatedId ||
-        null;
+        selectedEvent.contactAccountId || selectedEvent.relatedId || null;
       this.selectedEventContactName = selectedEvent.whoName || null;
       this.selectedEventContactId = selectedEvent.whoId || null;
       this.showRecapModal = true;

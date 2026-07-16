@@ -33,12 +33,32 @@ public with sharing class MeetingTranscriptionService {
         }
 
         try {
-            Deepgram_API_Config__mdt config = Deepgram_API_Config__mdt.getInstance('Default');
-            if (config == null || String.isBlank(config.API_Key__c)) {
-                throw new AuraHandledException('Deepgram API key not configured');
+            Deepgram_API_Config__mdt config;
+            try {
+                config = Deepgram_API_Config__mdt.getInstance('Default');
+            } catch (Exception configEx) {
+                System.debug('Error getting config: ' + configEx.getMessage());
+                throw new AuraHandledException(
+                    'Deepgram API configuration not found. Please configure the API key in Custom Metadata.'
+                );
             }
 
-            Blob audioBlob = EncodingUtil.base64Decode(audioBase64);
+            if (config == null || String.isBlank(config.API_Key__c)) {
+                throw new AuraHandledException(
+                    'Deepgram API key is not configured. Please set the API key in Custom Metadata Type: Deepgram_API_Config__mdt'
+                );
+            }
+
+            Blob audioBlob;
+            try {
+                audioBlob = EncodingUtil.base64Decode(audioBase64);
+                if (audioBlob == null || audioBlob.size() == 0) {
+                    throw new AuraHandledException('Invalid audio data: empty or corrupted');
+                }
+            } catch (Exception decodeEx) {
+                System.debug('Error decoding audio: ' + decodeEx.getMessage());
+                throw new AuraHandledException('Failed to decode audio data. Please try recording again.');
+            }
 
             HttpRequest req = new HttpRequest();
             req.setEndpoint(DEEPGRAM_ENDPOINT);
@@ -49,21 +69,57 @@ public with sharing class MeetingTranscriptionService {
             req.setTimeout(30000); // 30 second timeout
 
             Http http = new Http();
-            HttpResponse res = http.send(req);
+            HttpResponse res;
+            try {
+                res = http.send(req);
+            } catch (Exception httpEx) {
+                System.debug('HTTP callout error: ' + httpEx.getMessage());
+                throw new AuraHandledException(
+                    'Failed to connect to Deepgram API. Please check your network connection and Remote Site Settings.'
+                );
+            }
 
             if (res.getStatusCode() == 200) {
-                Map<String, Object> responseData = (Map<String, Object>) JSON.deserializeUntyped(res.getBody());
+                Map<String, Object> responseData;
+                try {
+                    responseData = (Map<String, Object>) JSON.deserializeUntyped(res.getBody());
+                } catch (Exception parseEx) {
+                    System.debug('Error parsing response: ' + parseEx.getMessage());
+                    System.debug('Response body: ' + res.getBody());
+                    throw new AuraHandledException('Failed to parse transcription response from Deepgram API.');
+                }
+
                 String transcript = extractTranscript(responseData);
                 return String.isNotBlank(transcript) ? transcript : '';
             } else {
+                String errorBody = res.getBody();
                 System.debug('Deepgram API error: ' + res.getStatusCode() + ' - ' + res.getStatus());
-                System.debug('Response body: ' + res.getBody());
-                throw new AuraHandledException('Deepgram API returned error: ' + res.getStatusCode());
+                System.debug('Response body: ' + errorBody);
+
+                String errorMessage = 'Deepgram API returned error code ' + res.getStatusCode();
+                if (res.getStatusCode() == 401) {
+                    errorMessage = 'Deepgram API authentication failed. Please check your API key.';
+                } else if (res.getStatusCode() == 400) {
+                    errorMessage = 'Invalid request to Deepgram API. The audio format may not be supported.';
+                } else if (res.getStatusCode() >= 500) {
+                    errorMessage = 'Deepgram API server error. Please try again later.';
+                }
+                throw new AuraHandledException(errorMessage);
             }
+        } catch (AuraHandledException e) {
+            throw e;
         } catch (Exception e) {
-            System.debug(LoggingLevel.ERROR, 'Error in transcribe: ' + e.getMessage());
+            String errorMsg = e.getMessage();
+            if (String.isBlank(errorMsg)) {
+                errorMsg = e.getTypeName();
+            }
+            if (String.isBlank(errorMsg)) {
+                errorMsg = 'Unknown error occurred during transcription';
+            }
+            System.debug(LoggingLevel.ERROR, 'Error in transcribe: ' + errorMsg);
+            System.debug('Exception type: ' + e.getTypeName());
             System.debug('Stack trace: ' + e.getStackTraceString());
-            throw new AuraHandledException('Transcription error: ' + e.getMessage());
+            throw new AuraHandledException('Transcription error: ' + errorMsg);
         }
     }
 

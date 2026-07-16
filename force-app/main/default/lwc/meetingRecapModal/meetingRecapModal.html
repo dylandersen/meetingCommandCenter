@@ -48,6 +48,381 @@
           </div>
         </template>
 
+        <!-- ============ REVIEW STEP ============ -->
+        <template lwc:elseif={reviewMode}>
+          <div class="review-banner" role="status">
+            <lightning-icon
+              icon-name="utility:sparkles"
+              size="small"
+              class="review-banner-ic"
+            ></lightning-icon>
+            <p class="review-banner-text">
+              Agentforce drafted these updates from your notes. Review and edit
+              anything, then confirm to save.
+            </p>
+          </div>
+
+          <!-- Suggested Opportunity Updates -->
+          <template lwc:if={hasOpportunity}>
+            <section class="rsection">
+              <header class="rsection-head">
+                <lightning-icon
+                  icon-name="standard:opportunity"
+                  size="small"
+                  class="rsection-ic"
+                ></lightning-icon>
+                <div class="rsection-titles">
+                  <h3 class="rsection-title">Opportunity Updates</h3>
+                  <p class="rsection-sub rsection-sub_wrap">
+                    Updates apply to this opportunity. Pick a different one to
+                    retarget the changes.
+                  </p>
+                </div>
+                <div class="opp-picker">
+                  <lightning-record-picker
+                    label="Opportunity"
+                    variant="label-hidden"
+                    placeholder="Search opportunities…"
+                    object-api-name="Opportunity"
+                    value={opportunityIdForCommit}
+                    onchange={handleOpportunityChange}
+                  ></lightning-record-picker>
+                </div>
+              </header>
+
+              <template lwc:if={hasOppRows}>
+              <table class="opp-table">
+                <thead>
+                  <tr>
+                    <th class="t-field">Field</th>
+                    <th class="t-current">Current</th>
+                    <th class="t-suggested">
+                      <lightning-icon
+                        icon-name="utility:sparkles"
+                        size="xx-small"
+                        class="t-spark"
+                      ></lightning-icon>
+                      Suggested
+                    </th>
+                    <th class="t-apply">Apply</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <template for:each={oppFieldRows} for:item="row">
+                    <tr key={row.key}>
+                      <td class="t-field">
+                        <span class="t-field-name">{row.label}</span>
+                      </td>
+                      <td class="t-current">
+                        <span class="t-current-val"
+                          >{row.currentDisplay}</span
+                        >
+                      </td>
+                      <td class="t-suggested">
+                        <template lwc:if={row.isCurrency}>
+                          <lightning-input
+                            type="number"
+                            formatter="currency"
+                            step="0.01"
+                            variant="label-hidden"
+                            label="Suggested amount"
+                            value={row.value}
+                            data-key={row.key}
+                            onchange={handleOppValueChange}
+                          ></lightning-input>
+                        </template>
+                        <template lwc:elseif={row.isDate}>
+                          <lightning-input
+                            type="date"
+                            variant="label-hidden"
+                            label="Suggested close date"
+                            value={row.value}
+                            data-key={row.key}
+                            onchange={handleOppValueChange}
+                          ></lightning-input>
+                        </template>
+                        <template lwc:elseif={row.isCombobox}>
+                          <lightning-combobox
+                            variant="label-hidden"
+                            label="Suggested stage"
+                            value={row.value}
+                            options={row.options}
+                            data-key={row.key}
+                            onchange={handleOppValueChange}
+                          ></lightning-combobox>
+                        </template>
+                        <template lwc:else>
+                          <lightning-input
+                            type="text"
+                            variant="label-hidden"
+                            label="Suggested value"
+                            value={row.value}
+                            data-key={row.key}
+                            onchange={handleOppValueChange}
+                          ></lightning-input>
+                        </template>
+                      </td>
+                      <td class="t-apply">
+                        <lightning-input
+                          type="toggle"
+                          label="Apply update"
+                          variant="label-hidden"
+                          message-toggle-active=""
+                          message-toggle-inactive=""
+                          checked={row.apply}
+                          data-key={row.key}
+                          onchange={handleOppApplyToggle}
+                        ></lightning-input>
+                      </td>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+              </template>
+              <template lwc:if={hasNoOppRows}>
+                <p class="opp-empty">
+                  No field changes suggested for this opportunity.
+                </p>
+              </template>
+            </section>
+          </template>
+
+          <!-- Suggested Follow-ups -->
+          <template lwc:if={hasTasks}>
+            <section class="rsection">
+              <header class="rsection-head">
+                <lightning-icon
+                  icon-name="standard:task"
+                  size="small"
+                  class="rsection-ic"
+                ></lightning-icon>
+                <div class="rsection-titles">
+                  <h3 class="rsection-title">Follow-ups</h3>
+                  <p class="rsection-sub">Assigned to {assignedToLabel}</p>
+                </div>
+              </header>
+
+              <div class="task-list">
+                <template for:each={taskRows} for:item="task">
+                  <article key={task.id} class="task-card">
+                    <div class="task-card-header">
+                      <lightning-input
+                        type="toggle"
+                        label="Create this follow-up"
+                        variant="label-hidden"
+                        message-toggle-active="Create"
+                        message-toggle-inactive="Skip"
+                        checked={task.include}
+                        data-id={task.id}
+                        onchange={handleTaskIncludeToggle}
+                      ></lightning-input>
+                      <button
+                        class="slds-button slds-button_icon task-remove"
+                        title="Remove follow-up"
+                        data-id={task.id}
+                        onclick={handleRemoveTask}
+                      >
+                        <lightning-icon
+                          icon-name="utility:delete"
+                          size="x-small"
+                          alternative-text="Remove"
+                        ></lightning-icon>
+                      </button>
+                    </div>
+                    <lightning-input
+                      class="slds-m-bottom_x-small"
+                      label="Subject"
+                      data-id={task.id}
+                      data-field="subject"
+                      value={task.subject}
+                      onchange={handleTaskFieldChange}
+                    ></lightning-input>
+                    <div class="task-grid slds-m-bottom_x-small">
+                      <lightning-input
+                        type="date"
+                        label="Due Date"
+                        data-id={task.id}
+                        data-field="dueDate"
+                        value={task.dueDate}
+                        onchange={handleTaskFieldChange}
+                      ></lightning-input>
+                      <template lwc:if={relatedToObjectApiName}>
+                        <lightning-record-picker
+                          label="Related To"
+                          placeholder="Search records..."
+                          object-api-name={relatedToObjectApiName}
+                          value={task.relatedToId}
+                          data-id={task.id}
+                          onchange={handleTaskRelatedChange}
+                        ></lightning-record-picker>
+                      </template>
+                      <div class="ro-field">
+                        <span class="ro-label">Assigned To</span>
+                        <div class="ro-value">
+                          <lightning-icon
+                            icon-name="standard:user"
+                            size="x-small"
+                          ></lightning-icon>
+                          <span class="ro-value-text">{assignedToLabel}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <lightning-textarea
+                      label="Description"
+                      data-id={task.id}
+                      data-field="description"
+                      value={task.description}
+                      onchange={handleTaskFieldChange}
+                    ></lightning-textarea>
+                  </article>
+                </template>
+              </div>
+
+              <lightning-button
+                variant="base"
+                label="Add follow-up"
+                icon-name="utility:add"
+                onclick={handleAddTask}
+                class="add-followup"
+              ></lightning-button>
+            </section>
+          </template>
+
+          <!-- No suggestions detected -->
+          <template lwc:if={hasNoSuggestions}>
+            <div class="no-suggestions">
+              <lightning-icon
+                icon-name="utility:check"
+                size="small"
+                class="slds-m-right_small"
+              ></lightning-icon>
+              <span
+                >No CRM updates or follow-ups were detected in your notes. You
+                can still save the recap summary below.</span
+              >
+            </div>
+          </template>
+
+          <!-- Recap preview (editable) -->
+          <section class="rsection">
+            <header class="rsection-head">
+              <lightning-icon
+                icon-name="standard:note"
+                size="small"
+                class="rsection-ic"
+              ></lightning-icon>
+              <div class="rsection-titles">
+                <h3 class="rsection-title">Recap</h3>
+                <p class="rsection-sub">
+                  Tap the pencil to edit any section before saving
+                </p>
+              </div>
+            </header>
+
+            <div class="preview-cards">
+              <template lwc:if={summaryPreview}>
+                <div class="preview-card">
+                  <div class="preview-card-head">
+                    <span class="preview-card-title">Summary</span>
+                    <button
+                      class="slds-button slds-button_icon pencil-btn"
+                      title="Edit summary"
+                      onclick={toggleEditSummary}
+                    >
+                      <lightning-icon
+                        icon-name={summaryEditIcon}
+                        size="x-small"
+                        alternative-text="Edit summary"
+                      ></lightning-icon>
+                    </button>
+                  </div>
+                  <template lwc:if={editingSummary}>
+                    <lightning-input-rich-text
+                      value={summaryPreview}
+                      onchange={handleSummaryChange}
+                    ></lightning-input-rich-text>
+                  </template>
+                  <template lwc:else>
+                    <lightning-formatted-rich-text
+                      value={summaryPreview}
+                    ></lightning-formatted-rich-text>
+                  </template>
+                </div>
+              </template>
+
+              <template lwc:if={keyOutcomesPreview}>
+                <div class="preview-card">
+                  <div class="preview-card-head">
+                    <span class="preview-card-title">Key Outcomes</span>
+                    <button
+                      class="slds-button slds-button_icon pencil-btn"
+                      title="Edit key outcomes"
+                      onclick={toggleEditOutcomes}
+                    >
+                      <lightning-icon
+                        icon-name={outcomesEditIcon}
+                        size="x-small"
+                        alternative-text="Edit key outcomes"
+                      ></lightning-icon>
+                    </button>
+                  </div>
+                  <template lwc:if={editingOutcomes}>
+                    <lightning-input-rich-text
+                      value={keyOutcomesPreview}
+                      onchange={handleOutcomesChange}
+                    ></lightning-input-rich-text>
+                  </template>
+                  <template lwc:else>
+                    <lightning-formatted-rich-text
+                      value={keyOutcomesPreview}
+                    ></lightning-formatted-rich-text>
+                  </template>
+                </div>
+              </template>
+
+              <template lwc:if={nextStepsPreview}>
+                <div class="preview-card">
+                  <div class="preview-card-head">
+                    <span class="preview-card-title">Next Steps</span>
+                    <button
+                      class="slds-button slds-button_icon pencil-btn"
+                      title="Edit next steps"
+                      onclick={toggleEditNextSteps}
+                    >
+                      <lightning-icon
+                        icon-name={nextStepsEditIcon}
+                        size="x-small"
+                        alternative-text="Edit next steps"
+                      ></lightning-icon>
+                    </button>
+                  </div>
+                  <template lwc:if={editingNextSteps}>
+                    <lightning-input-rich-text
+                      value={nextStepsPreview}
+                      onchange={handleNextStepsChange}
+                    ></lightning-input-rich-text>
+                  </template>
+                  <template lwc:else>
+                    <lightning-formatted-rich-text
+                      value={nextStepsPreview}
+                    ></lightning-formatted-rich-text>
+                  </template>
+                </div>
+              </template>
+            </div>
+          </section>
+
+          <template lwc:if={voiceError}>
+            <div
+              class="slds-text-color_error slds-text-body_small slds-m-top_x-small"
+              role="alert"
+            >
+              {voiceError}
+            </div>
+          </template>
+        </template>
+
+        <!-- ============ INPUT STEP ============ -->
         <template lwc:else>
           <!-- Instructions - Full Width -->
           <div
@@ -74,86 +449,113 @@
           <template lwc:if={accountInfo}>
             <div class="slds-box slds-box_x-small slds-m-bottom_medium">
               <div class="slds-grid slds-grid_vertical slds-gutters_small">
-                <!-- Account and Contact Info -->
+                <!-- Related record info: Account, Opportunity, Event, Contact -->
                 <div
                   class="slds-col account-contact-group slds-m-bottom_x-small"
                 >
+                  <!-- Account -->
+                  <template lwc:if={showAccountRow}>
+                    <div class="account-contact-item">
+                      <span class="field-icon field-icon_account">
+                        <lightning-icon
+                          icon-name="utility:company"
+                          size="xx-small"
+                          variant="inverse"
+                        ></lightning-icon>
+                      </span>
+                      <div class="account-contact-text">
+                        <div class="slds-text-body_small slds-text-color_weak">
+                          Account
+                        </div>
+                        <template lwc:if={accountInfo.accountName}>
+                          <a
+                            href="javascript:void(0)"
+                            class="slds-text-heading_small account-link"
+                            title={accountInfo.accountName}
+                            onclick={handleAccountClick}
+                          >
+                            {accountInfo.accountName}
+                          </a>
+                        </template>
+                        <template lwc:else>
+                          <span class="field-skeleton"></span>
+                        </template>
+                      </div>
+                    </div>
+                  </template>
+                  <!-- Opportunity -->
+                  <template lwc:if={accountInfo.opportunityName}>
+                    <div class="account-contact-item">
+                      <span class="field-icon field-icon_opportunity">
+                        <lightning-icon
+                          icon-name="utility:opportunity"
+                          size="xx-small"
+                          variant="inverse"
+                        ></lightning-icon>
+                      </span>
+                      <div class="account-contact-text">
+                        <div class="slds-text-body_small slds-text-color_weak">
+                          Opportunity
+                        </div>
+                        <a
+                          href="javascript:void(0)"
+                          class="slds-text-heading_small opportunity-link"
+                          title={accountInfo.opportunityName}
+                          onclick={handleOpportunityClick}
+                        >
+                          {accountInfo.opportunityName}
+                        </a>
+                      </div>
+                    </div>
+                  </template>
+                  <!-- Event -->
+                  <template lwc:if={eventSubject}>
+                    <div class="account-contact-item">
+                      <span class="field-icon field-icon_event">
+                        <lightning-icon
+                          icon-name="utility:event"
+                          size="xx-small"
+                          variant="inverse"
+                        ></lightning-icon>
+                      </span>
+                      <div class="account-contact-text">
+                        <div class="slds-text-body_small slds-text-color_weak">
+                          Event
+                        </div>
+                        <a
+                          href="javascript:void(0)"
+                          class="slds-text-heading_small event-link"
+                          title={eventSubject}
+                          onclick={handleEventClick}
+                        >
+                          {eventSubject}
+                        </a>
+                      </div>
+                    </div>
+                  </template>
                   <!-- Contact -->
                   <template lwc:if={accountInfo.contactName}>
                     <div class="account-contact-item">
-                      <div class="slds-text-body_small slds-text-color_weak section-header">
+                      <span class="field-icon field-icon_contact">
                         <lightning-icon
-                          icon-name="standard:contact"
+                          icon-name="utility:user"
                           size="xx-small"
-                          class="slds-m-right_xx-small section-header-icon"
+                          variant="inverse"
                         ></lightning-icon>
-                        Contact
+                      </span>
+                      <div class="account-contact-text">
+                        <div class="slds-text-body_small slds-text-color_weak">
+                          Contact
+                        </div>
+                        <a
+                          href="javascript:void(0)"
+                          class="slds-text-heading_small contact-link"
+                          title={accountInfo.contactName}
+                          onclick={handleContactClick}
+                        >
+                          {accountInfo.contactName}
+                        </a>
                       </div>
-                      <a
-                        href="javascript:void(0)"
-                        class="slds-text-heading_small contact-link"
-                        onclick={handleContactClick}
-                      >
-                        {accountInfo.contactName}
-                        <lightning-icon
-                          icon-name="utility:new_window"
-                          size="xx-small"
-                          class="slds-m-left_xx-small external-link-icon"
-                          alternative-text="Opens in new tab"
-                        ></lightning-icon>
-                      </a>
-                    </div>
-                  </template>
-                  <!-- Account -->
-                  <template lwc:if={accountInfo.accountName}>
-                    <div class="account-contact-item">
-                      <div class="slds-text-body_small slds-text-color_weak section-header">
-                        <lightning-icon
-                          icon-name="standard:account"
-                          size="xx-small"
-                          class="slds-m-right_xx-small section-header-icon"
-                        ></lightning-icon>
-                        Account
-                      </div>
-                      <a
-                        href="javascript:void(0)"
-                        class="slds-text-heading_small account-link"
-                        onclick={handleAccountClick}
-                      >
-                        {accountInfo.accountName}
-                        <lightning-icon
-                          icon-name="utility:new_window"
-                          size="xx-small"
-                          class="slds-m-left_xx-small external-link-icon"
-                          alternative-text="Opens in new tab"
-                        ></lightning-icon>
-                      </a>
-                    </div>
-                  </template>
-                  <!-- Event Name -->
-                  <template lwc:if={eventSubject}>
-                    <div class="account-contact-item">
-                      <div class="slds-text-body_small slds-text-color_weak section-header">
-                        <lightning-icon
-                          icon-name="standard:event"
-                          size="xx-small"
-                          class="slds-m-right_xx-small section-header-icon"
-                        ></lightning-icon>
-                        Event Name
-                      </div>
-                      <a
-                        href="javascript:void(0)"
-                        class="slds-text-heading_small event-link"
-                        onclick={handleEventClick}
-                      >
-                        {eventSubject}
-                        <lightning-icon
-                          icon-name="utility:new_window"
-                          size="xx-small"
-                          class="slds-m-left_xx-small external-link-icon"
-                          alternative-text="Opens in new tab"
-                        ></lightning-icon>
-                      </a>
                     </div>
                   </template>
                 </div>
@@ -256,20 +658,39 @@
 
       <!-- Footer -->
       <footer class="slds-modal__footer">
-        <lightning-button
-          variant="neutral"
-          label="Cancel"
-          onclick={handleClose}
-          disabled={isProcessing}
-          class="slds-m-right_small"
-        ></lightning-button>
-        <lightning-button
-          variant="brand"
-          label="Save & Summarize"
-          icon-name="utility:sparkles"
-          onclick={handleSave}
-          disabled={isSaveDisabled}
-        ></lightning-button>
+        <template lwc:if={reviewMode}>
+          <lightning-button
+            variant="neutral"
+            label="Back"
+            icon-name="utility:back"
+            onclick={handleBackToEdit}
+            disabled={isProcessing}
+            class="slds-m-right_small"
+          ></lightning-button>
+          <lightning-button
+            variant="brand"
+            label="Confirm & Save"
+            icon-name="utility:check"
+            onclick={handleConfirmSave}
+            disabled={isProcessing}
+          ></lightning-button>
+        </template>
+        <template lwc:else>
+          <lightning-button
+            variant="neutral"
+            label="Cancel"
+            onclick={handleClose}
+            disabled={isProcessing}
+            class="slds-m-right_small"
+          ></lightning-button>
+          <lightning-button
+            variant="brand"
+            label="Summarize"
+            icon-name="utility:sparkles"
+            onclick={handleAnalyze}
+            disabled={analyzeButtonDisabled}
+          ></lightning-button>
+        </template>
       </footer>
     </div>
   </section>

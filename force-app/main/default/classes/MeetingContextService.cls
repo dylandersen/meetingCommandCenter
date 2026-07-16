@@ -1,14 +1,13 @@
 /**
- * Gathers and shapes the CRM context (Account / Contact activity, plus related
- * record details) that the AI prompts and meeting prep UI depend on. All of the
+ * Gathers and shapes the CRM context (Account / Opportunity / Contact / Case
+ * activity) that the AI prompts and recap review UI depend on. All of the
  * read-only relationship resolution and "recent activity" querying lives here
  * so the prompt and persistence layers stay focused.
  */
 public with sharing class MeetingContextService {
     /**
-     * Builds the account prep info map for an Event: account/contact details
-     * plus an AI-generated activity summary. Falls back to a contact-based
-     * summary when the Event has no related account.
+     * Builds the account prep info map for an Event (account, opportunity,
+     * contact, and an AI activity summary), resolving the polymorphic WhatId.
      */
     public static Map<String, Object> buildAccountPrepInfo(String eventId) {
         Map<String, Object> result = new Map<String, Object>();
@@ -27,19 +26,41 @@ public with sharing class MeetingContextService {
 
             Event evt = events[0];
 
+            Id accountId = null;
+            String accountName = null;
+
             if (evt.WhatId != null) {
-                result.put('accountId', evt.WhatId);
-                result.put('accountName', evt.What != null ? evt.What.Name : null);
-                result.put('accountSummary', generateAccountSummary(evt.WhatId));
+                String whatType = String.valueOf(evt.WhatId.getSObjectType());
+
+                if (whatType == 'Opportunity') {
+                    result.put('opportunityId', evt.WhatId);
+                    result.put('opportunityName', evt.What != null ? evt.What.Name : null);
+
+                    List<Opportunity> opps = [
+                        SELECT Id, AccountId, Account.Name
+                        FROM Opportunity
+                        WHERE Id = :evt.WhatId
+                        LIMIT 1
+                    ];
+                    if (!opps.isEmpty() && opps[0].AccountId != null) {
+                        accountId = opps[0].AccountId;
+                        accountName = opps[0].Account != null ? opps[0].Account.Name : null;
+                    }
+                } else if (whatType == 'Account') {
+                    accountId = evt.WhatId;
+                    accountName = evt.What != null ? evt.What.Name : null;
+                }
+            }
+
+            if (accountId != null) {
+                result.put('accountId', accountId);
+                result.put('accountName', accountName);
+                result.put('accountSummary', generateAccountSummary(accountId));
             }
 
             if (evt.WhoId != null) {
                 result.put('contactId', evt.WhoId);
                 result.put('contactName', evt.Who != null ? evt.Who.Name : null);
-
-                if (evt.WhatId == null) {
-                    result.put('accountSummary', generateContactSummary(evt.WhoId));
-                }
             }
 
             return result;
@@ -84,122 +105,6 @@ public with sharing class MeetingContextService {
             return MeetingAIGateway.generate(MeetingPromptFactory.accountActivity(context));
         } catch (Exception e) {
             System.debug(LoggingLevel.ERROR, 'Error generating account summary: ' + e.getMessage());
-            return null;
-        }
-    }
-
-    /**
-     * Generates an AI summary of recent contact activity (used when no account
-     * is linked to the meeting).
-     */
-    public static String generateContactSummary(String contactId) {
-        try {
-            Date startDate = Date.today().addDays(-30);
-
-            List<Contact> contacts = [
-                SELECT Id, Name, Title, AccountId, Account.Name, Email
-                FROM Contact
-                WHERE Id = :contactId
-                LIMIT 1
-            ];
-
-            String accountId = null;
-            String contactContext = '';
-            if (!contacts.isEmpty()) {
-                Contact c = contacts[0];
-                contactContext += 'Contact: ' + c.Name;
-                if (c.Title != null) {
-                    contactContext += ' (' + c.Title + ')';
-                }
-                if (c.Account != null) {
-                    contactContext += ' at ' + c.Account.Name;
-                    accountId = c.AccountId;
-                }
-                contactContext += '\n\n';
-            }
-
-            List<Case> recentCases = [
-                SELECT Id, Subject, Status, Priority, CreatedDate
-                FROM Case
-                WHERE ContactId = :contactId AND CreatedDate >= :startDate
-                ORDER BY CreatedDate DESC
-                LIMIT 10
-            ];
-
-            List<Task> recentTasks = [
-                SELECT Id, Subject, Status, CreatedDate
-                FROM Task
-                WHERE WhoId = :contactId AND CreatedDate >= :startDate
-                ORDER BY CreatedDate DESC
-                LIMIT 10
-            ];
-
-            List<Event> recentEvents = [
-                SELECT Id, Subject, StartDateTime
-                FROM Event
-                WHERE WhoId = :contactId AND CreatedDate >= :startDate
-                ORDER BY StartDateTime DESC
-                LIMIT 5
-            ];
-
-            List<Opportunity> recentOpps = new List<Opportunity>();
-            if (accountId != null) {
-                recentOpps = [
-                    SELECT Id, Name, StageName, Amount, CloseDate
-                    FROM Opportunity
-                    WHERE AccountId = :accountId AND CreatedDate >= :startDate
-                    ORDER BY CreatedDate DESC
-                    LIMIT 10
-                ];
-            }
-
-            String context = contactContext + 'Recent Activity:\n\n';
-
-            if (!recentCases.isEmpty()) {
-                context += 'Recent Cases:\n';
-                for (Case c : recentCases) {
-                    context += '- ' + c.Subject + ' (' + c.Status + ', Priority: ' + c.Priority + ')\n';
-                }
-                context += '\n';
-            }
-
-            if (!recentOpps.isEmpty()) {
-                context += 'Recent Opportunities:\n';
-                for (Opportunity o : recentOpps) {
-                    String amount = o.Amount != null ? '$' + String.valueOf(o.Amount) : 'Amount not specified';
-                    context += '- ' + o.Name + ' (' + o.StageName + ', ' + amount + ')\n';
-                }
-                context += '\n';
-            }
-
-            if (!recentTasks.isEmpty()) {
-                context += 'Recent Tasks:\n';
-                for (Task t : recentTasks) {
-                    context += '- ' + (t.Subject != null ? t.Subject : 'Task') + ' (' + t.Status + ')\n';
-                }
-                context += '\n';
-            }
-
-            if (!recentEvents.isEmpty()) {
-                context += 'Recent Meetings:\n';
-                for (Event e : recentEvents) {
-                    context +=
-                        '- ' +
-                        (e.Subject != null ? e.Subject : 'Event') +
-                        ' (' +
-                        e.StartDateTime.format() +
-                        ')\n';
-                }
-                context += '\n';
-            }
-
-            if (recentCases.isEmpty() && recentOpps.isEmpty() && recentTasks.isEmpty() && recentEvents.isEmpty()) {
-                context += 'No recent activity in the last 30 days.\n';
-            }
-
-            return MeetingAIGateway.generate(MeetingPromptFactory.contactActivity(context));
-        } catch (Exception e) {
-            System.debug(LoggingLevel.ERROR, 'Error generating contact summary: ' + e.getMessage());
             return null;
         }
     }
@@ -439,5 +344,145 @@ public with sharing class MeetingContextService {
         }
 
         return context;
+    }
+
+    /**
+     * Resolves the Account / Opportunity / Contact related to an Event.
+     * Event.WhatId is polymorphic (Opportunity or Account). When it is an
+     * Opportunity, the parent Account is derived. When we have an Account but
+     * no Opportunity, the most relevant open Opportunity is surfaced so the
+     * rep can update it from the recap.
+     */
+    public static Map<String, Object> resolveOpportunityContext(Event evt) {
+        Map<String, Object> ctx = new Map<String, Object>{
+            'accountId' => null,
+            'accountName' => null,
+            'opportunityId' => null,
+            'opportunityName' => null,
+            'contactId' => null,
+            'contactName' => null
+        };
+
+        if (evt.WhoId != null) {
+            ctx.put('contactId', evt.WhoId);
+            ctx.put('contactName', evt.Who != null ? evt.Who.Name : null);
+        }
+
+        Id accountId = null;
+        if (evt.WhatId != null) {
+            String whatType = String.valueOf(evt.WhatId.getSObjectType());
+            if (whatType == 'Opportunity') {
+                ctx.put('opportunityId', evt.WhatId);
+                ctx.put('opportunityName', evt.What != null ? evt.What.Name : null);
+                for (Opportunity o : [
+                    SELECT Id, AccountId, Account.Name
+                    FROM Opportunity
+                    WHERE Id = :evt.WhatId
+                    LIMIT 1
+                ]) {
+                    accountId = o.AccountId;
+                    ctx.put('accountName', o.Account != null ? o.Account.Name : null);
+                }
+            } else if (whatType == 'Account') {
+                accountId = evt.WhatId;
+                ctx.put('accountName', evt.What != null ? evt.What.Name : null);
+            }
+        }
+
+        // Fallback: when the Event is linked only to a Contact (no WhatId),
+        // derive the Account from that Contact so we can still surface a
+        // relevant Opportunity to update from the recap.
+        if (accountId == null && evt.WhoId != null && String.valueOf(evt.WhoId.getSObjectType()) == 'Contact') {
+            for (Contact c : [
+                SELECT Id, AccountId, Account.Name
+                FROM Contact
+                WHERE Id = :evt.WhoId AND AccountId != NULL
+                LIMIT 1
+            ]) {
+                accountId = c.AccountId;
+                if (ctx.get('accountName') == null) {
+                    ctx.put('accountName', c.Account != null ? c.Account.Name : null);
+                }
+            }
+        }
+
+        if (accountId != null) {
+            ctx.put('accountId', accountId);
+        }
+
+        // Fallback: surface the most relevant open Opportunity on the Account -
+        // the one with the soonest close date (most likely to be actively worked).
+        if (ctx.get('opportunityId') == null && accountId != null) {
+            for (Opportunity o : [
+                SELECT Id, Name
+                FROM Opportunity
+                WHERE AccountId = :accountId AND IsClosed = FALSE
+                ORDER BY CloseDate ASC NULLS LAST, LastModifiedDate DESC
+                LIMIT 1
+            ]) {
+                ctx.put('opportunityId', o.Id);
+                ctx.put('opportunityName', o.Name);
+            }
+        }
+
+        return ctx;
+    }
+
+    /**
+     * Loads a single Opportunity's review fields, or null if not found.
+     */
+    public static Opportunity loadOpportunity(Id opportunityId) {
+        if (opportunityId == null) {
+            return null;
+        }
+        for (Opportunity o : [
+            SELECT Id, Name, Amount, CloseDate, StageName, NextStep
+            FROM Opportunity
+            WHERE Id = :opportunityId
+            LIMIT 1
+        ]) {
+            return o;
+        }
+        return null;
+    }
+
+    /**
+     * Returns the active StageName picklist values as label/value maps.
+     */
+    public static List<Map<String, String>> activeStageOptions() {
+        List<Map<String, String>> stageOptions = new List<Map<String, String>>();
+        for (Schema.PicklistEntry pe : Opportunity.StageName.getDescribe().getPicklistValues()) {
+            if (pe.isActive()) {
+                stageOptions.add(new Map<String, String>{ 'label' => pe.getLabel(), 'value' => pe.getValue() });
+            }
+        }
+        return stageOptions;
+    }
+
+    /**
+     * Builds the current-values + stage-options snapshot for a single
+     * Opportunity, used when the rep re-targets a different Opportunity in the
+     * recap review UI.
+     */
+    public static Map<String, Object> opportunitySnapshot(String opportunityId) {
+        Opportunity opp = loadOpportunity(opportunityId);
+        if (opp == null) {
+            throw new AuraHandledException('Opportunity not found');
+        }
+
+        Map<String, Object> result = new Map<String, Object>();
+        result.put('id', opp.Id);
+        result.put('name', opp.Name);
+        result.put(
+            'current',
+            new Map<String, Object>{
+                'amount' => opp.Amount,
+                'closeDate' => MeetingUtils.formatDateIso(opp.CloseDate),
+                'stageName' => opp.StageName,
+                'nextStep' => opp.NextStep
+            }
+        );
+        result.put('stageOptions', activeStageOptions());
+        return result;
     }
 }

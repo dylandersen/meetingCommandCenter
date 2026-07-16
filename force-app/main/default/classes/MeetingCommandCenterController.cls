@@ -4,13 +4,13 @@
  * focused, composable services:
  *
  *  - MeetingDataService          read-only event / recap / prep queries
- *  - MeetingContextService       Account/Contact context + AI activity summaries
+ *  - MeetingContextService       Account/Opportunity/Contact context resolution
  *  - MeetingContentService       AI subject/description generation for events & tasks
- *  - MeetingRecapService         recap summarization + persistence
+ *  - MeetingRecapService         recap submit / insights / commit / persistence
  *  - MeetingTranscriptionService Deepgram speech-to-text
  *  - MeetingPromptFactory        prompt construction
  *  - MeetingAIGateway            Models API integration
- *  - MeetingUtils                shared JSON helpers
+ *  - MeetingUtils                shared JSON / date / string helpers
  *
  * Keeping the controller thin makes each concern independently testable and
  * lets prompts, queries, and persistence evolve without touching the LWC
@@ -20,10 +20,10 @@ public with sharing class MeetingCommandCenterController {
     /**
      * Fetches events for a specific date for the current user.
      * @param selectedDate ISO date (YYYY-MM-DD); null/blank uses today.
-     * @return Event records, each with a transient Recap_Completed__c flag.
+     * @return Event field maps, each with a Recap_Completed__c flag.
      */
-    @AuraEnabled
-    public static List<Event> getTodaysEvents(String selectedDate) {
+    @AuraEnabled(cacheable=true)
+    public static List<Map<String, Object>> getTodaysEvents(String selectedDate) {
         return MeetingDataService.getTodaysEvents(selectedDate);
     }
 
@@ -76,7 +76,7 @@ public with sharing class MeetingCommandCenterController {
     }
 
     /**
-     * Gets account prep information (account/contact details + AI activity
+     * Gets account prep information (account/opportunity/contact + AI activity
      * summary) for a meeting recap.
      */
     @AuraEnabled
@@ -138,5 +138,35 @@ public with sharing class MeetingCommandCenterController {
     @AuraEnabled(cacheable=true)
     public static Map<String, Object> getEventRecord(String eventId) {
         return MeetingDataService.getEventRecord(eventId);
+    }
+
+    /**
+     * Analyzes recap notes into review-ready insights (no commit): summary,
+     * suggested Opportunity updates, and suggested follow-up tasks.
+     */
+    @AuraEnabled
+    public static Map<String, Object> generateRecapInsights(String eventId, String recapText) {
+        return MeetingRecapService.generateInsights(eventId, recapText);
+    }
+
+    /**
+     * Returns the current values + active stage options for a single
+     * Opportunity (used when the rep re-targets the Opportunity in the UI).
+     */
+    @AuraEnabled
+    public static Map<String, Object> getOpportunitySnapshot(String opportunityId) {
+        if (String.isBlank(opportunityId)) {
+            throw new AuraHandledException('Opportunity ID is required');
+        }
+        return MeetingContextService.opportunitySnapshot(opportunityId);
+    }
+
+    /**
+     * Persists a reviewed recap (recap record, Opportunity updates, audit rows,
+     * follow-up tasks) from a JSON payload and returns the recap ID.
+     */
+    @AuraEnabled
+    public static String commitRecap(String payloadJson) {
+        return MeetingRecapService.commitReviewedRecap(payloadJson);
     }
 }

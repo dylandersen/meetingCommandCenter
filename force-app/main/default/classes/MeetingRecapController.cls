@@ -3,190 +3,240 @@
  * Provides methods to fetch Event and Meeting Recap data
  */
 public with sharing class MeetingRecapController {
-  /**
-   * Fetches Event data with related Meeting Recap data
-   * @param eventId The Event ID to query
-   * @return Map containing Event data and Meeting Recap fields
-   */
-  @AuraEnabled(cacheable=true)
-  public static Map<String, Object> getEventRecapData(String eventId) {
-    if (String.isBlank(eventId)) {
-      throw new AuraHandledException('Event ID is required');
+    /**
+     * Fetches Event data with related Meeting Recap data
+     * @param eventId The Event ID to query
+     * @return Map containing Event data and Meeting Recap fields
+     */
+    @AuraEnabled(cacheable=true)
+    public static Map<String, Object> getEventRecapData(String eventId) {
+        if (String.isBlank(eventId)) {
+            throw new AuraHandledException('Event ID is required');
+        }
+
+        // Query Event
+        List<Event> events = [
+            SELECT
+                Id,
+                Subject,
+                StartDateTime,
+                EndDateTime,
+                Location,
+                Description,
+                DurationInMinutes,
+                WhatId,
+                What.Name,
+                WhoId,
+                Who.Name
+            FROM Event
+            WHERE Id = :eventId
+            LIMIT 1
+        ];
+
+        if (events.isEmpty()) {
+            throw new AuraHandledException('Event not found');
+        }
+
+        Event evt = events[0];
+
+        // Query Meeting Recap for this Event
+        List<Meeting_Recap__c> recaps = [
+            SELECT
+                Id,
+                Original_Recap_Text__c,
+                AI_Meeting_Summary__c,
+                AI_Key_Outcomes__c,
+                AI_Next_Steps__c,
+                Recap_Completed__c
+            FROM Meeting_Recap__c
+            WHERE Event__c = :eventId
+            ORDER BY CreatedDate DESC
+            LIMIT 1
+        ];
+
+        // Build result map with Event data
+        Map<String, Object> result = new Map<String, Object>();
+        result.put('Id', evt.Id);
+        result.put('Subject', evt.Subject);
+        result.put('StartDateTime', evt.StartDateTime);
+        result.put('EndDateTime', evt.EndDateTime);
+        result.put('Location', evt.Location);
+        result.put('Description', evt.Description);
+        result.put('DurationInMinutes', evt.DurationInMinutes);
+        result.put('WhatId', evt.WhatId);
+        result.put('WhoId', evt.WhoId);
+
+        // Add related Account/Contact data
+        if (evt.What != null) {
+            Map<String, Object> whatData = new Map<String, Object>();
+            whatData.put('Name', evt.What.Name);
+            result.put('What', whatData);
+        }
+
+        if (evt.Who != null) {
+            Map<String, Object> whoData = new Map<String, Object>();
+            whoData.put('Name', evt.Who.Name);
+            result.put('Who', whoData);
+        }
+
+        // Add Meeting Recap fields if recap exists
+        if (!recaps.isEmpty()) {
+            Meeting_Recap__c recap = recaps[0];
+            result.put('AI_Meeting_Summary__c', recap.AI_Meeting_Summary__c);
+            result.put('AI_Key_Outcomes__c', recap.AI_Key_Outcomes__c);
+            result.put('AI_Next_Steps__c', recap.AI_Next_Steps__c);
+            result.put('Recap_Completed__c', recap.Recap_Completed__c);
+            result.put('RecapId', recap.Id);
+            result.put('fieldChanges', fetchFieldChanges(recap.Id));
+        } else {
+            result.put('AI_Meeting_Summary__c', null);
+            result.put('AI_Key_Outcomes__c', null);
+            result.put('AI_Next_Steps__c', null);
+            result.put('Recap_Completed__c', false);
+            result.put('RecapId', null);
+            result.put('fieldChanges', new List<Map<String, Object>>());
+        }
+
+        return result;
     }
 
-    // Query Event
-    List<Event> events = [
-      SELECT
-        Id,
-        Subject,
-        StartDateTime,
-        EndDateTime,
-        Location,
-        Description,
-        DurationInMinutes,
-        WhatId,
-        What.Name,
-        WhoId,
-        Who.Name
-      FROM Event
-      WHERE Id = :eventId
-      LIMIT 1
-    ];
+    /**
+     * Fetches Meeting Recap data by Recap ID
+     * @param recapId The Meeting_Recap__c ID to query
+     * @return Map containing Event data and Meeting Recap fields
+     */
+    @AuraEnabled(cacheable=true)
+    public static Map<String, Object> getMeetingRecapData(String recapId) {
+        if (String.isBlank(recapId)) {
+            throw new AuraHandledException('Recap ID is required');
+        }
 
-    if (events.isEmpty()) {
-      throw new AuraHandledException('Event not found');
+        // Query Meeting Recap
+        List<Meeting_Recap__c> recaps = [
+            SELECT
+                Id,
+                Event__c,
+                Original_Recap_Text__c,
+                AI_Meeting_Summary__c,
+                AI_Key_Outcomes__c,
+                AI_Next_Steps__c,
+                Recap_Completed__c
+            FROM Meeting_Recap__c
+            WHERE Id = :recapId
+            LIMIT 1
+        ];
+
+        if (recaps.isEmpty()) {
+            throw new AuraHandledException('Meeting Recap not found');
+        }
+
+        Meeting_Recap__c recap = recaps[0];
+
+        // Query Event separately
+        List<Event> events = [
+            SELECT
+                Id,
+                Subject,
+                StartDateTime,
+                EndDateTime,
+                Location,
+                Description,
+                DurationInMinutes,
+                WhatId,
+                What.Name,
+                WhoId,
+                Who.Name
+            FROM Event
+            WHERE Id = :recap.Event__c
+            LIMIT 1
+        ];
+
+        if (events.isEmpty()) {
+            throw new AuraHandledException('Event not found for this Meeting Recap');
+        }
+
+        Event evt = events[0];
+
+        // Build result map with Event data
+        Map<String, Object> result = new Map<String, Object>();
+        result.put('Id', evt.Id);
+        result.put('Subject', evt.Subject);
+        result.put('StartDateTime', evt.StartDateTime);
+        result.put('EndDateTime', evt.EndDateTime);
+        result.put('Location', evt.Location);
+        result.put('Description', evt.Description);
+        result.put('DurationInMinutes', evt.DurationInMinutes);
+        result.put('WhatId', evt.WhatId);
+        result.put('WhoId', evt.WhoId);
+
+        // Add related Account/Contact data
+        if (evt.What != null) {
+            Map<String, Object> whatData = new Map<String, Object>();
+            whatData.put('Name', evt.What.Name);
+            result.put('What', whatData);
+        }
+
+        if (evt.Who != null) {
+            Map<String, Object> whoData = new Map<String, Object>();
+            whoData.put('Name', evt.Who.Name);
+            result.put('Who', whoData);
+        }
+
+        // Add Meeting Recap fields
+        result.put('AI_Meeting_Summary__c', recap.AI_Meeting_Summary__c);
+        result.put('AI_Key_Outcomes__c', recap.AI_Key_Outcomes__c);
+        result.put('AI_Next_Steps__c', recap.AI_Next_Steps__c);
+        result.put('Recap_Completed__c', recap.Recap_Completed__c);
+        result.put('RecapId', recap.Id);
+        result.put('fieldChanges', fetchFieldChanges(recap.Id));
+
+        return result;
     }
 
-    Event evt = events[0];
-
-    // Query Meeting Recap for this Event
-    List<Meeting_Recap__c> recaps = [
-      SELECT
-        Id,
-        Original_Recap_Text__c,
-        AI_Meeting_Summary__c,
-        AI_Key_Outcomes__c,
-        AI_Next_Steps__c,
-        Recap_Completed__c
-      FROM Meeting_Recap__c
-      WHERE Event__c = :eventId
-      ORDER BY CreatedDate DESC
-      LIMIT 1
-    ];
-
-    // Build result map with Event data
-    Map<String, Object> result = new Map<String, Object>();
-    result.put('Id', evt.Id);
-    result.put('Subject', evt.Subject);
-    result.put('StartDateTime', evt.StartDateTime);
-    result.put('EndDateTime', evt.EndDateTime);
-    result.put('Location', evt.Location);
-    result.put('Description', evt.Description);
-    result.put('DurationInMinutes', evt.DurationInMinutes);
-    result.put('WhatId', evt.WhatId);
-    result.put('WhoId', evt.WhoId);
-
-    // Add related Account/Contact data
-    if (evt.What != null) {
-      Map<String, Object> whatData = new Map<String, Object>();
-      whatData.put('Name', evt.What.Name);
-      result.put('What', whatData);
+    /**
+     * Returns the structured list of CRM field changes that were committed with a
+     * recap, including the previous value, new value, what the AI suggested, and
+     * whether the user overrode the AI suggestion.
+     * @param recapId The Meeting_Recap__c ID
+     * @return Ordered list of change rows for display
+     */
+    private static List<Map<String, Object>> fetchFieldChanges(Id recapId) {
+        List<Map<String, Object>> rows = new List<Map<String, Object>>();
+        if (recapId == null) {
+            return rows;
+        }
+        for (Meeting_Recap_Change__c c : [
+            SELECT
+                Id,
+                Field_Label__c,
+                Field_API_Name__c,
+                Object_Name__c,
+                Previous_Value__c,
+                New_Value__c,
+                AI_Suggested_Value__c,
+                AI_Overridden__c,
+                Target_Record_Id__c,
+                CreatedDate,
+                CreatedBy.Name
+            FROM Meeting_Recap_Change__c
+            WHERE Meeting_Recap__c = :recapId
+            ORDER BY Object_Name__c, Field_Label__c
+        ]) {
+            Boolean overridden = c.AI_Overridden__c == true;
+            Map<String, Object> row = new Map<String, Object>();
+            row.put('id', c.Id);
+            row.put('fieldLabel', c.Field_Label__c);
+            row.put('fieldApiName', c.Field_API_Name__c);
+            row.put('objectName', c.Object_Name__c);
+            row.put('previousValue', String.isBlank(c.Previous_Value__c) ? '—' : c.Previous_Value__c);
+            row.put('newValue', String.isBlank(c.New_Value__c) ? '—' : c.New_Value__c);
+            row.put('aiSuggestedValue', String.isBlank(c.AI_Suggested_Value__c) ? '—' : c.AI_Suggested_Value__c);
+            row.put('overridden', overridden);
+            row.put('sourceLabel', overridden ? 'Edited by rep' : 'Applied');
+            row.put('changedBy', c.CreatedBy != null ? c.CreatedBy.Name : null);
+            row.put('changedOn', c.CreatedDate != null ? c.CreatedDate.format('MMM d, yyyy, h:mm a') : null);
+            rows.add(row);
+        }
+        return rows;
     }
-
-    if (evt.Who != null) {
-      Map<String, Object> whoData = new Map<String, Object>();
-      whoData.put('Name', evt.Who.Name);
-      result.put('Who', whoData);
-    }
-
-    // Add Meeting Recap fields if recap exists
-    if (!recaps.isEmpty()) {
-      Meeting_Recap__c recap = recaps[0];
-      result.put('AI_Meeting_Summary__c', recap.AI_Meeting_Summary__c);
-      result.put('AI_Key_Outcomes__c', recap.AI_Key_Outcomes__c);
-      result.put('AI_Next_Steps__c', recap.AI_Next_Steps__c);
-      result.put('Recap_Completed__c', recap.Recap_Completed__c);
-      result.put('RecapId', recap.Id);
-    } else {
-      result.put('AI_Meeting_Summary__c', null);
-      result.put('AI_Key_Outcomes__c', null);
-      result.put('AI_Next_Steps__c', null);
-      result.put('Recap_Completed__c', false);
-      result.put('RecapId', null);
-    }
-
-    return result;
-  }
-
-  /**
-   * Fetches Meeting Recap data by Recap ID
-   * @param recapId The Meeting_Recap__c ID to query
-   * @return Map containing Event data and Meeting Recap fields
-   */
-  @AuraEnabled(cacheable=true)
-  public static Map<String, Object> getMeetingRecapData(String recapId) {
-    if (String.isBlank(recapId)) {
-      throw new AuraHandledException('Recap ID is required');
-    }
-
-    // Query Meeting Recap
-    List<Meeting_Recap__c> recaps = [
-      SELECT
-        Id,
-        Event__c,
-        Original_Recap_Text__c,
-        AI_Meeting_Summary__c,
-        AI_Key_Outcomes__c,
-        AI_Next_Steps__c,
-        Recap_Completed__c
-      FROM Meeting_Recap__c
-      WHERE Id = :recapId
-      LIMIT 1
-    ];
-
-    if (recaps.isEmpty()) {
-      throw new AuraHandledException('Meeting Recap not found');
-    }
-
-    Meeting_Recap__c recap = recaps[0];
-
-    // Query Event separately
-    List<Event> events = [
-      SELECT
-        Id,
-        Subject,
-        StartDateTime,
-        EndDateTime,
-        Location,
-        Description,
-        DurationInMinutes,
-        WhatId,
-        What.Name,
-        WhoId,
-        Who.Name
-      FROM Event
-      WHERE Id = :recap.Event__c
-      LIMIT 1
-    ];
-
-    if (events.isEmpty()) {
-      throw new AuraHandledException('Event not found for this Meeting Recap');
-    }
-
-    Event evt = events[0];
-
-    // Build result map with Event data
-    Map<String, Object> result = new Map<String, Object>();
-    result.put('Id', evt.Id);
-    result.put('Subject', evt.Subject);
-    result.put('StartDateTime', evt.StartDateTime);
-    result.put('EndDateTime', evt.EndDateTime);
-    result.put('Location', evt.Location);
-    result.put('Description', evt.Description);
-    result.put('DurationInMinutes', evt.DurationInMinutes);
-    result.put('WhatId', evt.WhatId);
-    result.put('WhoId', evt.WhoId);
-
-    // Add related Account/Contact data
-    if (evt.What != null) {
-      Map<String, Object> whatData = new Map<String, Object>();
-      whatData.put('Name', evt.What.Name);
-      result.put('What', whatData);
-    }
-
-    if (evt.Who != null) {
-      Map<String, Object> whoData = new Map<String, Object>();
-      whoData.put('Name', evt.Who.Name);
-      result.put('Who', whoData);
-    }
-
-    // Add Meeting Recap fields
-    result.put('AI_Meeting_Summary__c', recap.AI_Meeting_Summary__c);
-    result.put('AI_Key_Outcomes__c', recap.AI_Key_Outcomes__c);
-    result.put('AI_Next_Steps__c', recap.AI_Next_Steps__c);
-    result.put('Recap_Completed__c', recap.Recap_Completed__c);
-    result.put('RecapId', recap.Id);
-
-    return result;
-  }
 }

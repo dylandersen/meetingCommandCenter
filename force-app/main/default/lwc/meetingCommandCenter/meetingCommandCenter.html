@@ -158,9 +158,7 @@
                 alternative-text="Previous day"
               ></lightning-icon>
             </button>
-            <h2 class="meetings-card__date">
-              {formattedDate}
-            </h2>
+            <h2 class="meetings-card__date">{formattedDate}</h2>
             <button
               type="button"
               class="nav-btn"
@@ -175,17 +173,13 @@
             </button>
           </div>
           <div class="meetings-card__actions">
-            <template lwc:if={isToday}>
-              <span class="meetings-card__today-badge">Today</span>
-            </template>
-            <template lwc:else>
-              <lightning-button
-                variant="neutral"
-                label="Today"
-                onclick={handleGoToToday}
-                size="small"
-              ></lightning-button>
-            </template>
+            <lightning-button
+              variant={todayButtonVariant}
+              label="Today"
+              title={todayButtonTitle}
+              onclick={handleGoToToday}
+              size="small"
+            ></lightning-button>
             <button
               type="button"
               class="refresh-btn"
@@ -216,25 +210,68 @@
           <table class="meetings-table">
             <thead>
               <tr>
-                <th class="th-cell"><div class="th-content"><span class="th-label">Time</span></div></th>
-                <th class="th-cell"><div class="th-content"><span class="th-label">Meeting</span></div></th>
-                <th class="th-cell"><div class="th-content"><span class="th-label">Contact</span></div></th>
-                <th class="th-cell"><div class="th-content"><span class="th-label">Account</span></div></th>
-                <th class="th-cell"><div class="th-content"><span class="th-label">Location</span></div></th>
-                <th class="th-cell"><div class="th-content"><span class="th-label">Status</span></div></th>
-                <th class="th-cell th-cell--action"><div class="th-content th-content--static"><span class="th-label">Actions</span></div></th>
+                <th class="th-cell">
+                  <div class="th-content">
+                    <span class="th-label">Time</span>
+                  </div>
+                </th>
+                <th class="th-cell">
+                  <div class="th-content">
+                    <span class="th-label">Meeting</span>
+                  </div>
+                </th>
+                <th class="th-cell">
+                  <div class="th-content">
+                    <span class="th-label">Contact</span>
+                  </div>
+                </th>
+                <th class="th-cell">
+                  <div class="th-content">
+                    <span class="th-label">Account</span>
+                  </div>
+                </th>
+                <th class="th-cell">
+                  <div class="th-content">
+                    <span class="th-label">Location</span>
+                  </div>
+                </th>
+                <th class="th-cell">
+                  <div class="th-content">
+                    <span class="th-label">Status</span>
+                  </div>
+                </th>
+                <th class="th-cell th-cell--action">
+                  <div class="th-content th-content--static">
+                    <span class="th-label">Actions</span>
+                  </div>
+                </th>
               </tr>
             </thead>
             <tbody>
               <template for:each={skeletonRows} for:item="row">
                 <tr key={row} class="table-row skeleton-row">
-                  <td class="td-cell td-cell--time"><div class="skeleton-bar skeleton-bar--sm"></div><div class="skeleton-bar skeleton-bar--xs"></div></td>
-                  <td class="td-cell td-cell--meeting"><div class="skeleton-bar skeleton-bar--lg"></div></td>
-                  <td class="td-cell"><div class="skeleton-bar skeleton-bar--md"></div></td>
-                  <td class="td-cell"><div class="skeleton-bar skeleton-bar--md"></div></td>
-                  <td class="td-cell td-cell--location"><div class="skeleton-bar skeleton-bar--md"></div></td>
-                  <td class="td-cell"><div class="skeleton-bar skeleton-bar--badge"></div></td>
-                  <td class="td-cell td-cell--action"><div class="skeleton-bar skeleton-bar--btn"></div></td>
+                  <td class="td-cell td-cell--time">
+                    <div class="skeleton-bar skeleton-bar--sm"></div>
+                    <div class="skeleton-bar skeleton-bar--xs"></div>
+                  </td>
+                  <td class="td-cell td-cell--meeting">
+                    <div class="skeleton-bar skeleton-bar--lg"></div>
+                  </td>
+                  <td class="td-cell">
+                    <div class="skeleton-bar skeleton-bar--md"></div>
+                  </td>
+                  <td class="td-cell">
+                    <div class="skeleton-bar skeleton-bar--md"></div>
+                  </td>
+                  <td class="td-cell td-cell--location">
+                    <div class="skeleton-bar skeleton-bar--md"></div>
+                  </td>
+                  <td class="td-cell">
+                    <div class="skeleton-bar skeleton-bar--badge"></div>
+                  </td>
+                  <td class="td-cell td-cell--action">
+                    <div class="skeleton-bar skeleton-bar--btn"></div>
+                  </td>
                 </tr>
               </template>
             </tbody>
@@ -250,7 +287,9 @@
             size="medium"
             variant="error"
           ></lightning-icon>
-          <p class="meetings-card__status-text meetings-card__status-text--error">
+          <p
+            class="meetings-card__status-text meetings-card__status-text--error"
+          >
             {error}
           </p>
           <lightning-button
@@ -318,9 +357,7 @@
                 <tr key={event.Id} class="table-row">
                   <!-- Time -->
                   <td class="td-cell td-cell--time">
-                    <span class="time-primary"
-                      >{event.formattedStartTime}</span
-                    >
+                    <span class="time-primary">{event.formattedStartTime}</span>
                     <span class="time-secondary">{event.durationText}</span>
                   </td>
 
@@ -375,7 +412,15 @@
                       </div>
                     </template>
                     <template lwc:else>
-                      <span class="empty-cell">&mdash;</span>
+                      <button
+                        type="button"
+                        class="empty-cell empty-location-btn"
+                        data-event-id={event.Id}
+                        onclick={handleOpenLocationModal}
+                        title="Add meeting location"
+                      >
+                        &mdash;
+                      </button>
                     </template>
                   </td>
 
@@ -487,20 +532,24 @@
                       ></lightning-button>
                     </template>
                     <template lwc:elseif={event.isNow}>
-                      <div class="action-group">
+                      <div class="action-group action-group--compact">
                         <lightning-button
                           variant="success"
                           label="Prep"
+                          title="View meeting preparation"
                           onclick={handleViewPrep}
                           data-event-id={event.Id}
-                          size="small"
+                          size="x-small"
+                          class="action-btn-compact"
                         ></lightning-button>
                         <lightning-button
                           variant="brand"
                           label="Recap"
+                          title="Create AI-powered meeting recap"
                           onclick={handleRecapClick}
                           data-event-id={event.Id}
-                          size="small"
+                          size="x-small"
+                          class="action-btn-compact"
                         ></lightning-button>
                       </div>
                     </template>
@@ -563,5 +612,89 @@
       onclose={handleModalClose}
       onsave={handleRecapSave}
     ></c-meeting-recap-modal>
+
+    <!-- Location Modal -->
+    <template lwc:if={showLocationModal}>
+      <section
+        role="dialog"
+        tabindex="-1"
+        aria-modal="true"
+        aria-labelledby="location-modal-heading"
+        class="slds-modal slds-fade-in-open"
+      >
+        <div class="slds-modal__container location-modal">
+          <header class="slds-modal__header">
+            <button
+              class="slds-button slds-button_icon slds-modal__close"
+              title="Close"
+              onclick={handleCloseLocationModal}
+              disabled={isSavingLocation}
+            >
+              <lightning-icon
+                icon-name="utility:close"
+                alternative-text="Close"
+                size="small"
+              ></lightning-icon>
+              <span class="slds-assistive-text">Close</span>
+            </button>
+            <h2
+              id="location-modal-heading"
+              class="slds-modal__title slds-hyphenate"
+            >
+              {selectedLocationTitle}
+            </h2>
+          </header>
+
+          <div class="slds-modal__content slds-p-around_medium">
+            <lightning-input
+              type="text"
+              label="Location"
+              value={locationDraft}
+              onchange={handleLocationTextChange}
+              placeholder="Conference Room A, Zoom, customer office, etc."
+              disabled={isSavingLocation}
+            ></lightning-input>
+
+            <div class="location-modal__divider">
+              <span>or use address lookup</span>
+            </div>
+
+            <lightning-input-address
+              address-label="Address Lookup"
+              street-label="Street"
+              city-label="City"
+              province-label="State/Province"
+              postal-code-label="Postal Code"
+              country-label="Country"
+              street={locationAddress.street}
+              city={locationAddress.city}
+              province={locationAddress.province}
+              postal-code={locationAddress.postalCode}
+              country={locationAddress.country}
+              show-address-lookup
+              onchange={handleLocationAddressChange}
+              disabled={isSavingLocation}
+            ></lightning-input-address>
+          </div>
+
+          <footer class="slds-modal__footer">
+            <lightning-button
+              variant="neutral"
+              label="Cancel"
+              onclick={handleCloseLocationModal}
+              disabled={isSavingLocation}
+            ></lightning-button>
+            <lightning-button
+              variant="brand"
+              label="Save Location"
+              onclick={handleSaveLocation}
+              disabled={locationSaveDisabled}
+              class="slds-m-left_small"
+            ></lightning-button>
+          </footer>
+        </div>
+      </section>
+      <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
   </div>
 </template>

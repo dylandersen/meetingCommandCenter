@@ -32,6 +32,15 @@
         </div>
       </template>
 
+      <!-- Loading State -->
+      <template if:true={isLoading}>
+        <div class="loading-container">
+          <img src={agentforceIcon} alt="Agentforce" class="agentforce-icon" />
+          <div class="spinner"></div>
+          <p class="loading-text">{currentLoadingMessage}</p>
+        </div>
+      </template>
+
       <!-- No Prep State - Show Generate Button -->
       <template if:true={showGenerateButton}>
         <div class="slds-text-align_center slds-m-vertical_large">
@@ -66,21 +75,122 @@
         </div>
       </template>
 
-      <!-- Progressive Loading / Skeleton State -->
-      <template if:true={showSkeletonLayout}>
+      <!-- Prep Brief Display -->
+      <template if:true={hasPrep}>
         <div class="prep-brief-container">
-          <!-- Header with shimmer status text -->
+          <!-- Header -->
           <div class="prep-header slds-m-bottom_medium">
             <div class="header-info">
-              <div class="shimmer-status-row">
-                <p class="shimmer-status-text">{currentLoadingMessage}</p>
+              <div class="event-title-section">
+                <h3 class="event-title" onclick={handleEventClick}>
+                  {prepBrief.eventSubject}
+                </h3>
               </div>
+              <div class="event-details slds-m-top_x-small">
+                <template if:true={prepBrief.eventDateTime}>
+                  <div class="event-detail-item">
+                    <div class="event-detail-icon-container">
+                      <lightning-icon
+                        icon-name="utility:event"
+                        size="xx-small"
+                        class="event-detail-icon"
+                      ></lightning-icon>
+                    </div>
+                    <span class="slds-text-body_small"
+                      >{prepBrief.eventDateTime}</span
+                    >
+                  </div>
+                </template>
+                <template if:true={prepBrief.eventLocation}>
+                  <div class="event-detail-item">
+                    <div class="event-detail-icon-container">
+                      <lightning-icon
+                        icon-name="utility:location"
+                        size="xx-small"
+                        class="event-detail-icon"
+                      ></lightning-icon>
+                    </div>
+                    <span class="slds-text-body_small"
+                      >{prepBrief.eventLocation}</span
+                    >
+                  </div>
+                </template>
+                <template if:true={accountName}>
+                  <div class="event-detail-item">
+                    <div
+                      class="event-detail-icon-container account-icon-container"
+                    >
+                      <lightning-icon
+                        icon-name="utility:company"
+                        size="xx-small"
+                        class="event-detail-icon"
+                      ></lightning-icon>
+                    </div>
+                    <a
+                      href="javascript:void(0)"
+                      class="slds-text-body_small account-link"
+                      onclick={handleAccountClick}
+                    >
+                      {accountName}
+                    </a>
+                  </div>
+                </template>
+                <template if:true={contactName}>
+                  <div class="event-detail-item">
+                    <div
+                      class="event-detail-icon-container contact-icon-container"
+                    >
+                      <lightning-icon
+                        icon-name="utility:user"
+                        size="xx-small"
+                        class="event-detail-icon"
+                      ></lightning-icon>
+                    </div>
+                    <a
+                      href="javascript:void(0)"
+                      class="slds-text-body_small contact-link"
+                      onclick={handleContactClick}
+                    >
+                      {contactName}
+                    </a>
+                  </div>
+                </template>
+              </div>
+            </div>
+            <div class="header-actions">
+              <lightning-button-icon
+                icon-name="utility:refresh"
+                alternative-text="Regenerate Prep"
+                title="Regenerate Prep"
+                variant="border-filled"
+                onclick={handleRegeneratePrep}
+                class="action-button"
+              >
+              </lightning-button-icon>
+              <lightning-button-icon
+                icon-name="utility:open"
+                alternative-text="View Full Record"
+                title="View Full Record"
+                variant="border-filled"
+                onclick={navigateToMeetingPrep}
+                class="action-button"
+              >
+              </lightning-button-icon>
+              <lightning-button-icon
+                icon-name="utility:print"
+                alternative-text="Print Prep Brief"
+                title="Print Prep Brief"
+                variant="border-filled"
+                onclick={printPrep}
+                class="action-button"
+              >
+              </lightning-button-icon>
             </div>
           </div>
 
-          <!-- Two Column Skeleton Layout -->
+          <!-- Two Column Layout for Content -->
           <div class="two-column-layout">
-            <!-- Left Column: Brief skeleton or content -->
+            <!-- Left Column: Meeting Prep Brief -->
             <div class="column-left">
               <div class="content-section">
                 <h2 class="section-title">
@@ -91,219 +201,31 @@
                   Meeting Prep Brief
                 </h2>
                 <div class="content-body">
-                  <template if:true={isLoadingBrief}>
-                    <div class="skeleton-group">
-                      <div class="skeleton-line skeleton-heading"></div>
-                      <div class="skeleton-line skeleton-full"></div>
-                      <div class="skeleton-line skeleton-full"></div>
-                      <div class="skeleton-line skeleton-medium"></div>
-                      <div class="skeleton-spacer"></div>
-                      <div class="skeleton-line skeleton-heading"></div>
-                      <div class="skeleton-line skeleton-full"></div>
-                      <div class="skeleton-line skeleton-long"></div>
-                      <div class="skeleton-line skeleton-full"></div>
-                      <div class="skeleton-line skeleton-medium"></div>
-                      <div class="skeleton-spacer"></div>
-                      <div class="skeleton-line skeleton-heading"></div>
-                      <div class="skeleton-line skeleton-full"></div>
-                      <div class="skeleton-line skeleton-long"></div>
-                      <div class="skeleton-line skeleton-medium"></div>
-                      <div class="skeleton-spacer"></div>
-                      <div class="skeleton-line skeleton-heading"></div>
-                      <div class="skeleton-line skeleton-full"></div>
-                      <div class="skeleton-line skeleton-long"></div>
-                    </div>
-                  </template>
-                  <template if:false={isLoadingBrief}>
-                    <div class="prep-brief-content" lwc:dom="manual"></div>
-                  </template>
+                  <lightning-formatted-rich-text
+                    value={prepBrief.prepBriefHTML}
+                  >
+                  </lightning-formatted-rich-text>
                 </div>
               </div>
             </div>
 
-            <!-- Right Column: Intel skeleton or content -->
+            <!-- Right Column: Competitive Intelligence -->
             <div class="column-right">
-              <div class="content-section">
-                <h2 class="section-title">
-                  <lightning-icon
-                    icon-name="utility:search"
-                    size="x-small"
-                  ></lightning-icon>
-                  Competitive Intelligence
-                </h2>
-                <div class="content-body">
-                  <div class="skeleton-group">
-                    <div class="skeleton-line skeleton-heading"></div>
-                    <div class="skeleton-line skeleton-full"></div>
-                    <div class="skeleton-line skeleton-long"></div>
-                    <div class="skeleton-line skeleton-medium"></div>
-                    <div class="skeleton-spacer"></div>
-                    <div class="skeleton-line skeleton-heading"></div>
-                    <div class="skeleton-line skeleton-full"></div>
-                    <div class="skeleton-line skeleton-full"></div>
-                    <div class="skeleton-line skeleton-long"></div>
-                    <div class="skeleton-spacer"></div>
-                    <div class="skeleton-line skeleton-heading"></div>
-                    <div class="skeleton-line skeleton-full"></div>
-                    <div class="skeleton-line skeleton-medium"></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </template>
-
-      <!-- Prep Brief Display (fully loaded) -->
-      <template if:true={hasPrep}>
-        <template if:false={showSkeletonLayout}>
-          <div class="prep-brief-container">
-            <!-- Header -->
-            <div class="prep-header slds-m-bottom_medium">
-              <div class="header-info">
-                <div class="event-title-section">
-                  <h3 class="event-title" onclick={handleEventClick}>
-                    {prepBrief.eventSubject}
-                  </h3>
-                </div>
-                <div class="event-details slds-m-top_x-small">
-                  <template if:true={prepBrief.eventDateTime}>
-                    <div class="event-detail-item">
-                      <div class="event-detail-icon-container">
-                        <lightning-icon
-                          icon-name="utility:event"
-                          size="xx-small"
-                          class="event-detail-icon"
-                        ></lightning-icon>
-                      </div>
-                      <span class="slds-text-body_small"
-                        >{prepBrief.eventDateTime}</span
-                      >
-                    </div>
-                  </template>
-                  <template if:true={prepBrief.eventLocation}>
-                    <div class="event-detail-item">
-                      <div class="event-detail-icon-container">
-                        <lightning-icon
-                          icon-name="utility:location"
-                          size="xx-small"
-                          class="event-detail-icon"
-                        ></lightning-icon>
-                      </div>
-                      <span class="slds-text-body_small"
-                        >{prepBrief.eventLocation}</span
-                      >
-                    </div>
-                  </template>
-                  <template if:true={accountName}>
-                    <div class="event-detail-item">
-                      <div
-                        class="event-detail-icon-container account-icon-container"
-                      >
-                        <lightning-icon
-                          icon-name="utility:company"
-                          size="xx-small"
-                          class="event-detail-icon"
-                        ></lightning-icon>
-                      </div>
-                      <a
-                        href="javascript:void(0)"
-                        class="slds-text-body_small account-link"
-                        onclick={handleAccountClick}
-                      >
-                        {accountName}
-                      </a>
-                    </div>
-                  </template>
-                  <template if:true={contactName}>
-                    <div class="event-detail-item">
-                      <div
-                        class="event-detail-icon-container contact-icon-container"
-                      >
-                        <lightning-icon
-                          icon-name="utility:user"
-                          size="xx-small"
-                          class="event-detail-icon"
-                        ></lightning-icon>
-                      </div>
-                      <a
-                        href="javascript:void(0)"
-                        class="slds-text-body_small contact-link"
-                        onclick={handleContactClick}
-                      >
-                        {contactName}
-                      </a>
-                    </div>
-                  </template>
-                </div>
-              </div>
-              <div class="header-actions">
-                <lightning-button-icon
-                  icon-name="utility:refresh"
-                  alternative-text="Regenerate Prep"
-                  title="Regenerate Prep"
-                  variant="border-filled"
-                  onclick={handleRegeneratePrep}
-                  class="action-button"
-                >
-                </lightning-button-icon>
-                <lightning-button-icon
-                  icon-name="utility:open"
-                  alternative-text="View Full Record"
-                  title="View Full Record"
-                  variant="border-filled"
-                  onclick={navigateToMeetingPrep}
-                  class="action-button"
-                >
-                </lightning-button-icon>
-                <lightning-button-icon
-                  icon-name="utility:print"
-                  alternative-text="Print Prep Brief"
-                  title="Print Prep Brief"
-                  variant="border-filled"
-                  onclick={printPrep}
-                  class="action-button"
-                >
-                </lightning-button-icon>
-              </div>
-            </div>
-
-            <!-- Two Column Layout for Content -->
-            <div class="two-column-layout">
-              <!-- Left Column: Meeting Prep Brief -->
-              <div class="column-left">
+              <template if:true={hasCompetitiveIntel}>
                 <div class="content-section">
                   <h2 class="section-title">
                     <lightning-icon
-                      icon-name="utility:task"
+                      icon-name="utility:search"
                       size="x-small"
                     ></lightning-icon>
-                    Meeting Prep Brief
+                    Competitive Intelligence
                   </h2>
-                  <div class="content-body">
-                    <div class="prep-brief-content" lwc:dom="manual"></div>
-                  </div>
+                  <div class="content-body" lwc:dom="manual"></div>
                 </div>
-              </div>
-
-              <!-- Right Column: Competitive Intelligence -->
-              <div class="column-right">
-                <template if:true={hasCompetitiveIntel}>
-                  <div class="content-section">
-                    <h2 class="section-title">
-                      <lightning-icon
-                        icon-name="utility:search"
-                        size="x-small"
-                      ></lightning-icon>
-                      Competitive Intelligence
-                    </h2>
-                    <div class="content-body" lwc:dom="manual"></div>
-                  </div>
-                </template>
-              </div>
+              </template>
             </div>
           </div>
-        </template>
+        </div>
       </template>
     </div>
   </lightning-card>

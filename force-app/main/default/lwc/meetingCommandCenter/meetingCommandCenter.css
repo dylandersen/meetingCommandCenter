@@ -121,7 +121,9 @@
   border: 1px solid var(--slds-g-color-border-base-4, #e5e5e5);
   border-radius: 0.375rem;
   padding: var(--slds-spacing-medium, 1rem);
-  transition: background-color 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
 .feature-box:hover {
@@ -220,7 +222,9 @@
     --slds-g-color-neutral-base-40,
     #939393
   );
-  transition: background-color 0.1s ease, border-color 0.1s ease;
+  transition:
+    background-color 0.1s ease,
+    border-color 0.1s ease;
 }
 
 .nav-btn:hover {
@@ -250,21 +254,6 @@
   gap: 0.5rem;
 }
 
-/* Today badge (shown when already on today) */
-.meetings-card__today-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.125rem 0.625rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--slds-g-color-brand-base-50, #0176d3);
-  background: var(--slds-g-color-brand-base-95, #eef4ff);
-  border: 1px solid var(--slds-g-color-brand-base-80, #b3d4ff);
-  border-radius: 1rem;
-  letter-spacing: 0.02em;
-  user-select: none;
-}
-
 /* Refresh button */
 .refresh-btn {
   display: inline-flex;
@@ -281,7 +270,9 @@
     --slds-g-color-neutral-base-40,
     #939393
   );
-  transition: background-color 0.1s ease, border-color 0.1s ease;
+  transition:
+    background-color 0.1s ease,
+    border-color 0.1s ease;
 }
 
 .refresh-btn:hover {
@@ -394,7 +385,9 @@
   gap: 0.25rem;
   padding: 0.5rem 1rem;
   cursor: pointer;
-  transition: color 0.15s ease, background 0.15s ease;
+  transition:
+    color 0.15s ease,
+    background 0.15s ease;
 }
 
 .th-content:hover {
@@ -452,6 +445,11 @@
   white-space: nowrap;
   min-width: 11rem;
   text-align: center;
+}
+
+.td-cell--action lightning-button {
+  white-space: nowrap;
+  --slds-c-button-text-white-space: nowrap;
 }
 
 .table-row:hover td {
@@ -535,6 +533,49 @@
   color: var(--slds-g-color-neutral-base-80, #c9c9c9);
 }
 
+.empty-location-btn {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+}
+
+.empty-location-btn:hover,
+.empty-location-btn:focus {
+  color: var(--slds-g-color-brand-base-50, #0176d3);
+  text-decoration: underline;
+}
+
+.empty-location-btn:focus {
+  outline: 2px solid var(--slds-g-color-brand-base-50, #0176d3);
+  outline-offset: 2px;
+  border-radius: 0.125rem;
+}
+
+.location-modal {
+  max-width: 36rem;
+}
+
+.location-modal__divider {
+  display: flex;
+  align-items: center;
+  gap: var(--slds-spacing-small, 0.75rem);
+  color: var(--slds-g-color-neutral-base-40, #939393);
+  font-size: 0.75rem;
+  margin: var(--slds-spacing-medium, 1rem) 0;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.location-modal__divider::before,
+.location-modal__divider::after {
+  content: "";
+  flex: 1;
+  border-top: 1px solid var(--slds-g-color-border-base-4, #e5e5e5);
+}
+
 /* Status badges */
 .status-badge {
   display: inline-block;
@@ -563,9 +604,42 @@
 
 /* Action column */
 .action-group {
-  display: flex;
-  gap: 0.375rem;
-  justify-content: flex-end;
+  display: inline-flex;
+  flex-wrap: nowrap;
+  gap: 0.25rem;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+}
+
+.action-group lightning-button {
+  flex-shrink: 0;
+}
+
+/* Compact action group: View Prep + Create Recap side-by-side */
+.action-group--compact {
+  flex-wrap: nowrap;
+  gap: 0.25rem;
+  justify-content: center;
+}
+
+.action-group--compact .action-btn-compact {
+  --slds-c-button-font-size: 0.6875rem;
+  --slds-c-button-line-height: 1.25;
+  --slds-c-button-neutral-spacing-block-start: 0.25rem;
+  --slds-c-button-neutral-spacing-block-end: 0.25rem;
+  --slds-c-button-neutral-spacing-inline-start: 0.5rem;
+  --slds-c-button-neutral-spacing-inline-end: 0.5rem;
+  white-space: nowrap;
+}
+
+/* Target lightning-button via host - use smaller tokens for compact buttons */
+.action-group--compact lightning-button {
+  --slds-c-button-font-size: 0.6875rem;
+  --slds-c-button-spacing-block-start: 0.25rem;
+  --slds-c-button-spacing-block-end: 0.25rem;
+  --slds-c-button-spacing-inline-start: 0.5rem;
+  --slds-c-button-spacing-inline-end: 0.5rem;
 }
 
 /* ---- Card Body: Empty State ---- */

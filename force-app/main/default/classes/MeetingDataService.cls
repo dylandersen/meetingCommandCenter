@@ -1,14 +1,15 @@
 /**
  * Read-only query layer for the Meeting Command Center: today's events with
  * recap status, contact/account lookups, recap and prep record IDs, and the
- * lightweight Event record used by the hover popover.
+ * lightweight Event record used by the hover popover. Keeping the cacheable
+ * reads here separates them from the AI/persistence services.
  */
 public with sharing class MeetingDataService {
     /**
-     * Returns the current user's events for the given date (today when blank),
-     * each augmented with a transient Recap_Completed__c flag for the LWC.
+     * Returns the current user's events for the given date (today when blank)
+     * as field maps, each augmented with a Recap_Completed__c flag.
      */
-    public static List<Event> getTodaysEvents(String selectedDate) {
+    public static List<Map<String, Object>> getTodaysEvents(String selectedDate) {
         Date targetDate;
         if (String.isNotBlank(selectedDate)) {
             try {
@@ -57,12 +58,15 @@ public with sharing class MeetingDataService {
             }
         }
 
+        List<Map<String, Object>> eventMaps = new List<Map<String, Object>>();
         for (Event evt : events) {
             Meeting_Recap__c recap = recapMap.get(evt.Id);
-            evt.put('Recap_Completed__c', recap != null && recap.Recap_Completed__c == true);
+            Map<String, Object> eventMap = (Map<String, Object>) JSON.deserializeUntyped(JSON.serialize(evt));
+            eventMap.put('Recap_Completed__c', recap != null && recap.Recap_Completed__c == true);
+            eventMaps.add(eventMap);
         }
 
-        return events;
+        return eventMaps;
     }
 
     /**

@@ -152,6 +152,26 @@ export default class MeetingRecap extends NavigationMixin(LightningElement) {
     return !this.hasRecapData;
   }
 
+  get fieldChanges() {
+    const rows = this.eventData?.fieldChanges || [];
+    return rows.map((r) => ({
+      ...r,
+      badgeClass: r.overridden
+        ? "source-badge source-badge_edited"
+        : "source-badge source-badge_ai",
+      badgeIcon: r.overridden ? "utility:edit" : "utility:agent_astro"
+    }));
+  }
+
+  get hasFieldChanges() {
+    return this.fieldChanges.length > 0;
+  }
+
+  get fieldChangeCountLabel() {
+    const n = this.fieldChanges.length;
+    return n === 1 ? "1 field update" : `${n} field updates`;
+  }
+
   get hasSummary() {
     return this.eventData && this.eventData.AI_Meeting_Summary__c;
   }
