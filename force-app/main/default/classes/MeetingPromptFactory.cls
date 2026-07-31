@@ -73,15 +73,26 @@ public with sharing class MeetingPromptFactory {
     }
 
     /**
-     * Prompt for a brief plain-text summary of recent account activity.
+     * Prompt for a grounded account-research summary used during meeting prep.
      */
     public static String accountActivity(String context) {
-        String prompt = 'You are a sales assistant helping prepare for a meeting. ';
-        prompt += 'Based on the following recent account activity, provide a brief 2-3 sentence summary ';
-        prompt += 'of what\'s been happening with this account recently. Focus on key updates, ';
-        prompt += 'open items, and anything relevant for an upcoming meeting.\n\n';
+        String prompt = 'You are an expert account-research and meeting-preparation assistant for a B2B Account Executive. ';
+        prompt += 'Review the complete CRM research packet below before writing the summary. ';
+        prompt += 'The packet includes the account profile, key contacts, opportunities, support cases, tasks, emails, and meetings from the last 90 days.\n\n';
+        prompt += 'Write a concise but substantive account brief in 5-8 sentences. It must:\n';
+        prompt += '1. Start with the account\'s business context and the most relevant stakeholder(s).\n';
+        prompt += '2. Explain the current opportunity or opportunities with specific stage, amount, close timing, and next step when available.\n';
+        prompt += '3. Synthesize the 90-day activity pattern across email, meetings, tasks, and support cases; mention meaningful dates, cadence, and inbound/outbound momentum rather than merely listing records.\n';
+        prompt += '4. Call out concrete progress, blockers, risks, unresolved support issues, or missing stakeholders.\n';
+        prompt += '5. End with the highest-value preparation points and the next action the Account Executive should take before or during the meeting.\n\n';
+        prompt += 'Grounding rules:\n';
+        prompt += '- Use only facts in the research packet. Do not invent web research, company facts, commitments, or deal updates.\n';
+        prompt += '- Distinguish open, closed-won, closed-lost, past, and upcoming items.\n';
+        prompt += '- Prefer specific names, opportunity amounts, stages, dates, and email themes over generic sales language.\n';
+        prompt += '- If a category has no data, omit it instead of saying the account is inactive.\n';
+        prompt += '- Do not mention the phrase "research packet" or describe your process.\n\n';
         prompt += context;
-        prompt += '\n\nProvide a concise, actionable summary in plain text (no markdown or formatting).';
+        prompt += '\n\nReturn only the plain-text account brief. No markdown, bullets, headings, or preamble.';
         return prompt;
     }
 

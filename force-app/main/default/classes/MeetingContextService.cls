@@ -71,37 +71,127 @@ public with sharing class MeetingContextService {
     }
 
     /**
-     * Generates an AI summary of recent account activity (last 30 days).
+     * Generates an AI account-research summary from a complete 90-day CRM
+     * activity packet. The account summary is shown during meeting prep, so
+     * include both durable account context and time-bound deal momentum.
      */
     public static String generateAccountSummary(String accountId) {
         try {
-            Date startDate = Date.today().addDays(-30);
+            Date startDate = Date.today().addDays(-90);
+            DateTime startDateTime = DateTime.now().addDays(-90);
 
-            List<Case> recentCases = [
-                SELECT Id, Subject, Status, Priority, CreatedDate
-                FROM Case
-                WHERE AccountId = :accountId AND CreatedDate >= :startDate
-                ORDER BY CreatedDate DESC
-                LIMIT 10
+            Account account = [
+                SELECT
+                    Id,
+                    Name,
+                    Industry,
+                    Type,
+                    Website,
+                    AnnualRevenue,
+                    NumberOfEmployees,
+                    Description,
+                    BillingCity,
+                    BillingState
+                FROM Account
+                WHERE Id = :accountId
+                LIMIT 1
             ];
 
-            List<Opportunity> recentOpps = [
-                SELECT Id, Name, StageName, Amount, CloseDate
+            List<Contact> contacts = [
+                SELECT Id, Name, FirstName, LastName, Title, Department, Email, Phone
+                FROM Contact
+                WHERE AccountId = :accountId
+                ORDER BY LastModifiedDate DESC
+                LIMIT 25
+            ];
+
+            List<Opportunity> opportunities = [
+                SELECT
+                    Id,
+                    Name,
+                    StageName,
+                    Amount,
+                    CloseDate,
+                    Probability,
+                    NextStep,
+                    IsClosed,
+                    IsWon,
+                    CreatedDate,
+                    LastModifiedDate
                 FROM Opportunity
-                WHERE AccountId = :accountId AND CreatedDate >= :startDate
-                ORDER BY CreatedDate DESC
-                LIMIT 10
+                WHERE AccountId = :accountId
+                ORDER BY IsClosed ASC, CloseDate ASC NULLS LAST, LastModifiedDate DESC
+                LIMIT 25
             ];
 
-            List<Task> recentTasks = [
-                SELECT Id, Subject, Status, CreatedDate
+            List<Case> cases = [
+                SELECT Id, Subject, Status, Priority, Origin, CreatedDate, LastModifiedDate, ClosedDate
+                FROM Case
+                WHERE AccountId = :accountId AND (CreatedDate >= :startDateTime OR LastModifiedDate >= :startDateTime)
+                ORDER BY LastModifiedDate DESC
+                LIMIT 25
+            ];
+
+            List<Task> tasks = [
+                SELECT
+                    Id,
+                    Subject,
+                    Status,
+                    Priority,
+                    Type,
+                    ActivityDate,
+                    Description,
+                    CreatedDate,
+                    LastModifiedDate,
+                    Who.Name
                 FROM Task
-                WHERE WhatId = :accountId AND CreatedDate >= :startDate
-                ORDER BY CreatedDate DESC
-                LIMIT 10
+                WHERE (WhatId = :accountId OR AccountId = :accountId) AND CreatedDate >= :startDateTime
+                ORDER BY ActivityDate DESC NULLS LAST, CreatedDate DESC
+                LIMIT 50
             ];
 
-            String context = buildAccountContext(recentCases, recentOpps, recentTasks);
+            List<EmailMessage> emails = [
+                SELECT Id, Subject, FromName, FromAddress, ToAddress, TextBody, MessageDate, Incoming, Status
+                FROM EmailMessage
+                WHERE RelatedToId = :accountId AND MessageDate >= :startDateTime
+                ORDER BY MessageDate DESC
+                LIMIT 50
+            ];
+
+            Set<Id> opportunityIds = new Set<Id>();
+            for (Opportunity opportunity : opportunities) {
+                opportunityIds.add(opportunity.Id);
+            }
+
+            List<Event> events = new List<Event>();
+            if (opportunityIds.isEmpty()) {
+                events = [
+                    SELECT Id, Subject, StartDateTime, EndDateTime, Location, Description, Who.Name, What.Name
+                    FROM Event
+                    WHERE WhatId = :accountId AND StartDateTime >= :startDateTime
+                    ORDER BY StartDateTime DESC
+                    LIMIT 25
+                ];
+            } else {
+                events = [
+                    SELECT Id, Subject, StartDateTime, EndDateTime, Location, Description, Who.Name, What.Name
+                    FROM Event
+                    WHERE (WhatId = :accountId OR WhatId IN :opportunityIds) AND StartDateTime >= :startDateTime
+                    ORDER BY StartDateTime DESC
+                    LIMIT 25
+                ];
+            }
+
+            String context = buildAccountContext(
+                account,
+                contacts,
+                opportunities,
+                cases,
+                tasks,
+                emails,
+                events,
+                startDate
+            );
             return MeetingAIGateway.generate(MeetingPromptFactory.accountActivity(context));
         } catch (Exception e) {
             System.debug(LoggingLevel.ERROR, 'Error generating account summary: ' + e.getMessage());
@@ -110,41 +200,202 @@ public with sharing class MeetingContextService {
     }
 
     /**
-     * Builds a plain-text context block from recent account activity.
+     * Builds a grounded research packet for the account-summary prompt.
      */
-    private static String buildAccountContext(List<Case> cases, List<Opportunity> opps, List<Task> tasks) {
-        String context = 'Recent Account Activity:\n\n';
+    private static String buildAccountContext(
+        Account account,
+        List<Contact> contacts,
+        List<Opportunity> opportunities,
+        List<Case> cases,
+        List<Task> tasks,
+        List<EmailMessage> emails,
+        List<Event> events,
+        Date startDate
+    ) {
+        String context = 'ACCOUNT RESEARCH PACKET\n';
+        context += 'Research window: ' + startDate.format() + ' through ' + Date.today().format() + ' (90 days)\n\n';
 
-        if (!cases.isEmpty()) {
-            context += 'Recent Cases:\n';
-            for (Case c : cases) {
-                context += '- ' + c.Subject + ' (' + c.Status + ', Priority: ' + c.Priority + ')\n';
+        context += 'Account Profile:\n';
+        context += '- Name: ' + account.Name + '\n';
+        if (String.isNotBlank(account.Industry)) {
+            context += '- Industry: ' + account.Industry + '\n';
+        }
+        if (String.isNotBlank(account.Type)) {
+            context += '- Type: ' + account.Type + '\n';
+        }
+        if (String.isNotBlank(account.Website)) {
+            context += '- Website: ' + account.Website + '\n';
+        }
+        if (account.AnnualRevenue != null) {
+            context += '- Annual revenue: $' + String.valueOf(account.AnnualRevenue) + '\n';
+        }
+        if (account.NumberOfEmployees != null) {
+            context += '- Employees: ' + String.valueOf(account.NumberOfEmployees) + '\n';
+        }
+        if (String.isNotBlank(account.BillingCity) || String.isNotBlank(account.BillingState)) {
+            context +=
+                '- Location: ' +
+                String.valueOf(account.BillingCity) +
+                ', ' +
+                String.valueOf(account.BillingState) +
+                '\n';
+        }
+        if (String.isNotBlank(account.Description)) {
+            context += '- Description: ' + truncateText(account.Description, 600) + '\n';
+        }
+        context += '\n';
+
+        context += 'Key Contacts (' + contacts.size() + '):\n';
+        if (contacts.isEmpty()) {
+            context += '- No contacts found.\n';
+        } else {
+            for (Contact contact : contacts) {
+                context +=
+                    '- ' +
+                    contact.Name +
+                    (String.isNotBlank(contact.Title) ? ' — ' + contact.Title : '') +
+                    (String.isNotBlank(contact.Department) ? ' (' + contact.Department + ')' : '') +
+                    (String.isNotBlank(contact.Email) ? ', ' + contact.Email : '') +
+                    '\n';
             }
-            context += '\n';
         }
+        context += '\n';
 
-        if (!opps.isEmpty()) {
-            context += 'Recent Opportunities:\n';
-            for (Opportunity o : opps) {
-                String amount = o.Amount != null ? '$' + String.valueOf(o.Amount) : 'Amount not specified';
-                context += '- ' + o.Name + ' (' + o.StageName + ', ' + amount + ')\n';
+        context += 'Opportunities (' + opportunities.size() + '):\n';
+        if (opportunities.isEmpty()) {
+            context += '- No opportunities found.\n';
+        } else {
+            for (Opportunity opportunity : opportunities) {
+                String amount = opportunity.Amount != null
+                    ? '$' + String.valueOf(opportunity.Amount)
+                    : 'amount not specified';
+                String status = opportunity.IsClosed ? (opportunity.IsWon ? 'closed won' : 'closed lost') : 'open';
+                context +=
+                    '- ' +
+                    opportunity.Name +
+                    ' | ' +
+                    status +
+                    ' | stage: ' +
+                    opportunity.StageName +
+                    ' | amount: ' +
+                    amount;
+                if (opportunity.CloseDate != null) {
+                    context += ' | close date: ' + opportunity.CloseDate.format();
+                }
+                if (opportunity.Probability != null) {
+                    context += ' | probability: ' + String.valueOf(opportunity.Probability) + '%';
+                }
+                if (String.isNotBlank(opportunity.NextStep)) {
+                    context += ' | next step: ' + truncateText(opportunity.NextStep, 300);
+                }
+                context += '\n';
             }
-            context += '\n';
         }
+        context += '\n';
 
-        if (!tasks.isEmpty()) {
-            context += 'Recent Tasks:\n';
-            for (Task t : tasks) {
-                context += '- ' + (t.Subject != null ? t.Subject : 'Task') + ' (' + t.Status + ')\n';
+        context += 'Support Cases in Window (' + cases.size() + '):\n';
+        if (cases.isEmpty()) {
+            context += '- None.\n';
+        } else {
+            for (Case supportCase : cases) {
+                context +=
+                    '- ' +
+                    supportCase.Subject +
+                    ' | status: ' +
+                    supportCase.Status +
+                    ' | priority: ' +
+                    supportCase.Priority +
+                    ' | last modified: ' +
+                    supportCase.LastModifiedDate.format();
+                if (String.isNotBlank(supportCase.Origin)) {
+                    context += ' | origin: ' + supportCase.Origin;
+                }
+                context += '\n';
             }
-            context += '\n';
+        }
+        context += '\n';
+
+        context += 'Tasks in Window (' + tasks.size() + '):\n';
+        if (tasks.isEmpty()) {
+            context += '- None.\n';
+        } else {
+            for (Task task : tasks) {
+                context +=
+                    '- ' +
+                    (task.Subject != null ? task.Subject : 'Task') +
+                    ' | status: ' +
+                    task.Status +
+                    ' | priority: ' +
+                    task.Priority +
+                    (String.isNotBlank(task.Type) ? ' | type: ' + task.Type : '') +
+                    (task.Who != null ? ' | contact: ' + task.Who.Name : '');
+                if (task.ActivityDate != null) {
+                    context += ' | due: ' + task.ActivityDate.format();
+                }
+                if (String.isNotBlank(task.Description)) {
+                    context += ' | detail: ' + truncateText(task.Description, 400);
+                }
+                context += '\n';
+            }
+        }
+        context += '\n';
+
+        context += 'Email Conversation in Window (' + emails.size() + '):\n';
+        if (emails.isEmpty()) {
+            context += '- None.\n';
+        } else {
+            for (EmailMessage email : emails) {
+                String direction = email.Incoming ? 'INBOUND' : 'OUTBOUND';
+                context +=
+                    '- ' +
+                    String.valueOf(email.MessageDate) +
+                    ' | ' +
+                    direction +
+                    ' | from: ' +
+                    email.FromName +
+                    ' <' +
+                    email.FromAddress +
+                    '> | subject: ' +
+                    email.Subject +
+                    '\n';
+                if (String.isNotBlank(email.TextBody)) {
+                    context += '  excerpt: ' + truncateText(email.TextBody, 600) + '\n';
+                }
+            }
+        }
+        context += '\n';
+
+        context += 'Meetings in Window (' + events.size() + '):\n';
+        if (events.isEmpty()) {
+            context += '- None.\n';
+        } else {
+            for (Event meeting : events) {
+                String timing = meeting.StartDateTime > DateTime.now() ? 'UPCOMING' : 'PAST';
+                context +=
+                    '- ' +
+                    timing +
+                    ' | ' +
+                    String.valueOf(meeting.StartDateTime) +
+                    ' | ' +
+                    meeting.Subject +
+                    (meeting.Who != null ? ' | contact: ' + meeting.Who.Name : '') +
+                    (meeting.What != null ? ' | related: ' + meeting.What.Name : '') +
+                    (String.isNotBlank(meeting.Location) ? ' | location: ' + meeting.Location : '') +
+                    '\n';
+            }
         }
 
-        if (cases.isEmpty() && opps.isEmpty() && tasks.isEmpty()) {
-            context += 'No recent activity in the last 30 days.\n';
-        }
-
+        context +=
+            '\nResearch rules: Treat this packet as the source of truth. Distinguish facts from reasonable inferences. ' +
+            'Do not invent external research, contacts, deal stages, or commitments that are not present above.';
         return context;
+    }
+
+    private static String truncateText(String value, Integer maxLength) {
+        if (String.isBlank(value) || value.length() <= maxLength) {
+            return value;
+        }
+        return value.substring(0, maxLength) + '...';
     }
 
     /**
