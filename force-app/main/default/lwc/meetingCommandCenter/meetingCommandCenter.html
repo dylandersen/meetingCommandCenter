@@ -210,32 +210,32 @@
           <table class="meetings-table">
             <thead>
               <tr>
-                <th class="th-cell">
+                <th class="th-cell th-cell--time">
                   <div class="th-content">
                     <span class="th-label">Time</span>
                   </div>
                 </th>
-                <th class="th-cell">
+                <th class="th-cell th-cell--meeting">
                   <div class="th-content">
                     <span class="th-label">Meeting</span>
                   </div>
                 </th>
-                <th class="th-cell">
+                <th class="th-cell th-cell--contact">
                   <div class="th-content">
                     <span class="th-label">Contact</span>
                   </div>
                 </th>
-                <th class="th-cell">
+                <th class="th-cell th-cell--account">
                   <div class="th-content">
                     <span class="th-label">Account</span>
                   </div>
                 </th>
-                <th class="th-cell">
+                <th class="th-cell th-cell--location">
                   <div class="th-content">
                     <span class="th-label">Location</span>
                   </div>
                 </th>
-                <th class="th-cell">
+                <th class="th-cell th-cell--status">
                   <div class="th-content">
                     <span class="th-label">Status</span>
                   </div>
@@ -257,16 +257,16 @@
                   <td class="td-cell td-cell--meeting">
                     <div class="skeleton-bar skeleton-bar--lg"></div>
                   </td>
-                  <td class="td-cell">
+                  <td class="td-cell td-cell--contact">
                     <div class="skeleton-bar skeleton-bar--md"></div>
                   </td>
-                  <td class="td-cell">
+                  <td class="td-cell td-cell--account">
                     <div class="skeleton-bar skeleton-bar--md"></div>
                   </td>
                   <td class="td-cell td-cell--location">
                     <div class="skeleton-bar skeleton-bar--md"></div>
                   </td>
-                  <td class="td-cell">
+                  <td class="td-cell td-cell--status">
                     <div class="skeleton-bar skeleton-bar--badge"></div>
                   </td>
                   <td class="td-cell td-cell--action">
@@ -388,7 +388,7 @@
                   </td>
 
                   <!-- Contact -->
-                  <td class="td-cell">
+                  <td class="td-cell td-cell--contact">
                     <template lwc:if={event.whoName}>
                       <div class="cell-with-icon">
                         <lightning-icon
@@ -425,7 +425,7 @@
                   </td>
 
                   <!-- Account -->
-                  <td class="td-cell">
+                  <td class="td-cell td-cell--account">
                     <template lwc:if={event.relatedName}>
                       <div class="cell-with-icon">
                         <lightning-icon
@@ -484,7 +484,9 @@
                           size="xx-small"
                           class="cell-icon"
                         ></lightning-icon>
-                        <span class="location-text">{event.Location}</span>
+                        <span class="location-text" title={event.Location}
+                          >{event.Location}</span
+                        >
                       </div>
                     </template>
                     <template lwc:else>
@@ -493,7 +495,7 @@
                   </td>
 
                   <!-- Status -->
-                  <td class="td-cell">
+                  <td class="td-cell td-cell--status">
                     <template lwc:if={event.isPast}>
                       <span class="status-badge status-badge--ended"
                         >Ended</span
@@ -516,7 +518,8 @@
                     <template lwc:if={event.showRecapButton}>
                       <lightning-button
                         variant="brand"
-                        label="Recap Meeting"
+                        label="Recap"
+                        title="Create AI-powered meeting recap"
                         onclick={handleRecapClick}
                         data-event-id={event.Id}
                         size="small"
@@ -556,7 +559,8 @@
                     <template lwc:elseif={event.isUpcoming}>
                       <lightning-button
                         variant="success"
-                        label="Prep for Meeting"
+                        label="Prep"
+                        title="View meeting preparation"
                         onclick={handlePrepClick}
                         data-event-id={event.Id}
                         size="small"

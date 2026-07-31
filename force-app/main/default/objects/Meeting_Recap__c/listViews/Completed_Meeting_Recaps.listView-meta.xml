@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ListView xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Completed_Meeting_Recaps</fullName>
+    <columns>NAME</columns>
+    <columns>Event__c</columns>
+    <columns>AI_Meeting_Summary__c</columns>
+    <columns>AI_Key_Outcomes__c</columns>
+    <columns>AI_Next_Steps__c</columns>
+    <columns>LAST_UPDATE</columns>
+    <filterScope>Everything</filterScope>
+    <filters>
+        <field>Recap_Completed__c</field>
+        <operation>equals</operation>
+        <value>1</value>
+    </filters>
+    <label>Completed Meeting Recaps</label>
+    <sharedTo>
+        <allInternalUsers></allInternalUsers>
+    </sharedTo>
+</ListView>

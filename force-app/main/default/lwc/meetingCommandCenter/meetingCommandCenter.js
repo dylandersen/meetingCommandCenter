@@ -393,12 +393,20 @@ export default class MeetingCommandCenter extends NavigationMixin(
 
   get tableColumns() {
     const cols = [
-      { field: "StartDateTime", label: "Time" },
-      { field: "Subject", label: "Meeting" },
-      { field: "whoName", label: "Contact" },
-      { field: "accountName", label: "Account" },
-      { field: "Location", label: "Location" },
-      { field: "status", label: "Status" }
+      { field: "StartDateTime", label: "Time", widthClass: "th-cell--time" },
+      { field: "Subject", label: "Meeting", widthClass: "th-cell--meeting" },
+      { field: "whoName", label: "Contact", widthClass: "th-cell--contact" },
+      {
+        field: "accountName",
+        label: "Account",
+        widthClass: "th-cell--account"
+      },
+      {
+        field: "Location",
+        label: "Location",
+        widthClass: "th-cell--location"
+      },
+      { field: "status", label: "Status", widthClass: "th-cell--status" }
     ];
     return cols.map((col) => ({
       ...col,
@@ -407,7 +415,9 @@ export default class MeetingCommandCenter extends NavigationMixin(
       isSortedDesc:
         this.sortField === col.field && this.sortDirection === "desc",
       headerClass:
-        "th-cell" + (this.sortField === col.field ? " th-cell--active" : "")
+        "th-cell " +
+        col.widthClass +
+        (this.sortField === col.field ? " th-cell--active" : "")
     }));
   }
 

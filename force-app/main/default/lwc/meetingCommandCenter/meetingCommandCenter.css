@@ -350,7 +350,8 @@
   width: 100%;
   border-collapse: collapse;
   font-size: 0.8125rem;
-  table-layout: auto;
+  table-layout: fixed;
+  min-width: 46rem;
 }
 
 /* ── Table Header ── */
@@ -375,8 +376,36 @@
   color: var(--slds-g-color-brand-base-50, #0176d3);
 }
 
+/* Column widths — percentage-based (table-layout: fixed) so the Actions
+   column always stays visible without horizontal scrolling. Text columns
+   truncate with ellipsis and rely on the hover popovers (or native title
+   tooltips for Location) to reveal full values. */
+.th-cell--time {
+  width: 9%;
+}
+
+.th-cell--meeting {
+  width: 24%;
+}
+
+.th-cell--contact {
+  width: 14%;
+}
+
+.th-cell--account {
+  width: 17%;
+}
+
+.th-cell--location {
+  width: 15%;
+}
+
+.th-cell--status {
+  width: 11%;
+}
+
 .th-cell--action {
-  min-width: 11rem;
+  width: 10%;
 }
 
 .th-content {
@@ -422,29 +451,42 @@
   color: var(--slds-g-color-neutral-base-10, #181818);
   border-bottom: 1px solid rgba(0, 0, 0, 0.05);
   white-space: nowrap;
-  max-width: 240px;
   overflow: hidden;
   text-overflow: ellipsis;
   vertical-align: middle;
 }
 
+/* Column widths mirror the .th-cell--* widths above so every row's cells
+   truncate consistently with the header (table-layout: fixed). */
 .td-cell--time {
-  width: 7rem;
+  width: 9%;
 }
 
 .td-cell--meeting {
-  min-width: 12rem;
-  max-width: 20rem;
+  width: 24%;
+}
+
+.td-cell--contact {
+  width: 14%;
+}
+
+.td-cell--account {
+  width: 17%;
 }
 
 .td-cell--location {
-  max-width: 14rem;
+  width: 15%;
+}
+
+.td-cell--status {
+  width: 11%;
 }
 
 .td-cell--action {
+  width: 10%;
   white-space: nowrap;
-  min-width: 11rem;
-  text-align: center;
+  text-align: left;
+  overflow: visible;
 }
 
 .td-cell--action lightning-button {
@@ -608,7 +650,7 @@
   flex-wrap: nowrap;
   gap: 0.25rem;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   white-space: nowrap;
 }
 
@@ -620,7 +662,7 @@
 .action-group--compact {
   flex-wrap: nowrap;
   gap: 0.25rem;
-  justify-content: center;
+  justify-content: flex-start;
 }
 
 .action-group--compact .action-btn-compact {

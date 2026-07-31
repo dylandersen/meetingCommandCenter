@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ListView xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Pending_Meeting_Recaps</fullName>
+    <columns>NAME</columns>
+    <columns>Event__c</columns>
+    <columns>Original_Recap_Text__c</columns>
+    <columns>CREATED_DATE</columns>
+    <columns>LAST_UPDATE</columns>
+    <filterScope>Everything</filterScope>
+    <filters>
+        <field>Recap_Completed__c</field>
+        <operation>equals</operation>
+        <value>0</value>
+    </filters>
+    <label>Pending Meeting Recaps</label>
+    <sharedTo>
+        <allInternalUsers></allInternalUsers>
+    </sharedTo>
+</ListView>

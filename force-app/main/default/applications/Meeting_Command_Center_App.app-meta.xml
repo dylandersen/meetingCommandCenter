@@ -11,5 +11,6 @@
     <navType>Standard</navType>
     <tabs>Meeting_Command_Center</tabs>
     <tabs>standard-Event</tabs>
+    <tabs>Meeting_Recap__c</tabs>
     <uiType>Lightning</uiType>
 </CustomApplication>
