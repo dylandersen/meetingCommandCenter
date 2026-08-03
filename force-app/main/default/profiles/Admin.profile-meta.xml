@@ -12,6 +12,10 @@
         <visibility>DefaultOn</visibility>
     </tabVisibilities>
     <tabVisibilities>
+        <tab>Meeting_Command_Center_Mobile</tab>
+        <visibility>DefaultOn</visibility>
+    </tabVisibilities>
+    <tabVisibilities>
         <tab>Meeting_Recap__c</tab>
         <visibility>DefaultOn</visibility>
     </tabVisibilities>

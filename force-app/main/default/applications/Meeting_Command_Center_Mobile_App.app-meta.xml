@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomApplication xmlns="http://soap.sforce.com/2006/04/metadata">
+    <brand>
+        <headerColor>#0176D3</headerColor>
+        <shouldOverrideOrgTheme>false</shouldOverrideOrgTheme>
+    </brand>
+    <description>Mobile-first Meeting Command Center for preparation, agenda management, and Agentforce-powered recaps.</description>
+    <formFactors>Small</formFactors>
+    <formFactors>Large</formFactors>
+    <isNavAutoTempTabsDisabled>false</isNavAutoTempTabsDisabled>
+    <isNavPersonalizationDisabled>false</isNavPersonalizationDisabled>
+    <label>Meeting Command Center Mobile</label>
+    <navType>Standard</navType>
+    <tabs>Meeting_Command_Center_Mobile</tabs>
+    <tabs>standard-Event</tabs>
+    <tabs>Meeting_Recap__c</tabs>
+    <uiType>Lightning</uiType>
+</CustomApplication>

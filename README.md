@@ -26,10 +26,10 @@ structured recap, updated Opportunity, and follow-up tasks - powered by Agentfor
 
 | Area           | What is in the repo                                                                                                                                    |
 | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Salesforce app | Custom objects, fields, permission sets, and the Meeting Command Center experience surfaced on a Lightning page.                                        |
+| Salesforce app | Custom objects, fields, permission sets, and separate desktop and mobile-first Meeting Command Center experiences surfaced on Lightning pages.        |
 | Agentforce     | Einstein Generative AI (Models API) drives meeting summaries, key outcomes, next steps, and suggested Opportunity updates.                             |
 | Apex           | Composable services for event/recap queries, CRM context resolution, prompt construction, AI content generation, recap persistence, and transcription. |
-| LWC            | Command center dashboard, recap modal with voice capture, meeting prep display, and record hover popovers.                                             |
+| LWC            | Desktop command center, mobile-first agenda cards, recap modal with voice capture, meeting prep display, and record hover popovers.                       |
 | Integrations   | Deepgram for voice-to-text transcription and Tavily for competitive intelligence, both via Custom Metadata config.                                     |
 | Docs           | Deployment and API setup guides for standing the app up in your own org.                                                                               |
 
@@ -38,6 +38,7 @@ structured recap, updated Opportunity, and follow-up tasks - powered by Agentfor
 - `force-app/main/default` - Salesforce metadata source.
 - `force-app/main/default/classes` - Apex services, controllers, and tests.
 - `force-app/main/default/lwc` - Lightning Web Components.
+- `force-app/main/default/lwc/meetingCommandCenterMobile` - touch-first command center that reuses `MeetingCommandCenterController` and the existing recap workflow.
 - `force-app/main/default/objects` - Custom objects and fields (`Meeting_Recap__c`, `Meeting_Prep__c`, `Meeting_Recap_Change__c`).
 - `docs` - Screenshots and setup guides.
 - `DEEPGRAM_SETUP.md` - Voice transcription configuration walkthrough.
@@ -79,6 +80,14 @@ After deploying, finish setup in the org:
    - `Deepgram_API_Config__mdt.Default`
    - `Tavily_API_Config__mdt.Default`
 3. Add the Meeting Command Center component to a Lightning page or open its tab.
+
+### Salesforce mobile app
+
+The repository includes a distinct **Meeting Command Center Mobile** LWC, Lightning
+page, tab, and app definition. Deploy the metadata, then add the **Meeting Command
+Center Mobile** app or tab to the Salesforce mobile navigation for the intended users.
+The mobile bundle uses the same Apex controller methods and custom objects as the
+desktop component; no second backend configuration is required.
 
 Run Apex tests when validating Salesforce behavior:
 

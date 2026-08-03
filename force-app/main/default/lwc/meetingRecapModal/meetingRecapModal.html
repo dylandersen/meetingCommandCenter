@@ -5,6 +5,7 @@
     aria-modal="true"
     aria-labelledby="modal-heading"
     class="slds-modal slds-fade-in-open slds-modal_medium modal-centered"
+    onkeydown={handleDialogKeyDown}
   >
     <div class="slds-modal__container">
       <!-- Close Button -->
@@ -445,6 +446,58 @@
             </div>
           </div>
 
+          <!-- Voice capture is the primary mobile action. -->
+          <div class="voice-capture-panel slds-m-bottom_medium">
+            <div class="voice-input-wrapper">
+              <p class="voice-capture-label">Speak your meeting notes</p>
+              <lightning-button
+                variant={voiceButtonVariant}
+                label={voiceButtonLabel}
+                icon-name={voiceButtonIcon}
+                onclick={toggleVoiceRecording}
+                class="voice-recording-button"
+                disabled={isButtonDisabled}
+              ></lightning-button>
+              <template lwc:if={isRecording}>
+                <div class="waveform-container" aria-hidden="true">
+                  <span class="waveform-bar"></span>
+                  <span class="waveform-bar"></span>
+                  <span class="waveform-bar"></span>
+                  <span class="waveform-bar"></span>
+                  <span class="waveform-bar"></span>
+                  <span class="waveform-bar"></span>
+                  <span class="waveform-bar"></span>
+                </div>
+                <p class="slds-assistive-text" role="status">
+                  Recording in progress
+                </p>
+              </template>
+              <template lwc:if={isTranscribing}>
+                <div
+                  class="slds-grid slds-grid_vertical-align-center slds-m-top_small"
+                  role="status"
+                >
+                  <img
+                    src={agentforceIcon}
+                    alt="Agentforce"
+                    class="agentforce-loading-icon slds-m-right_small"
+                  />
+                  <span class="slds-text-body_small slds-text-color_weak"
+                    >Transcribing...</span
+                  >
+                </div>
+              </template>
+            </div>
+            <template lwc:if={voiceError}>
+              <div
+                class="slds-text-color_error slds-text-body_small slds-m-top_x-small"
+                role="alert"
+              >
+                {voiceError}
+              </div>
+            </template>
+          </div>
+
           <!-- Account Prep Info -->
           <template lwc:if={accountInfo}>
             <div class="slds-box slds-box_x-small slds-m-bottom_medium">
@@ -593,7 +646,6 @@
                 id="recap-notes"
                 class="slds-textarea"
                 placeholder="What happened? Key decisions? Next steps?"
-                value={recapText}
                 oninput={handleTextChange}
                 maxlength="4000"
                 aria-describedby="char-counter"
@@ -607,52 +659,6 @@
             </div>
           </div>
 
-          <!-- Voice Input Section -->
-          <div class="slds-m-bottom_medium">
-            <div class="voice-input-wrapper">
-              <lightning-button
-                variant={voiceButtonVariant}
-                label={voiceButtonLabel}
-                icon-name={voiceButtonIcon}
-                onclick={toggleVoiceRecording}
-                class="voice-recording-button"
-                disabled={isButtonDisabled}
-              ></lightning-button>
-              <template lwc:if={isRecording}>
-                <div class="waveform-container">
-                  <span class="waveform-bar"></span>
-                  <span class="waveform-bar"></span>
-                  <span class="waveform-bar"></span>
-                  <span class="waveform-bar"></span>
-                  <span class="waveform-bar"></span>
-                  <span class="waveform-bar"></span>
-                  <span class="waveform-bar"></span>
-                </div>
-              </template>
-              <template lwc:if={isTranscribing}>
-                <div
-                  class="slds-grid slds-grid_vertical-align-center slds-m-top_small"
-                >
-                  <img
-                    src={agentforceIcon}
-                    alt="Agentforce"
-                    class="agentforce-loading-icon slds-m-right_small"
-                  />
-                  <span class="slds-text-body_small slds-text-color_weak"
-                    >Transcribing...</span
-                  >
-                </div>
-              </template>
-            </div>
-            <template lwc:if={voiceError}>
-              <div
-                class="slds-text-color_error slds-text-body_small slds-m-top_x-small"
-                role="alert"
-              >
-                {voiceError}
-              </div>
-            </template>
-          </div>
         </template>
       </div>
 
@@ -665,7 +671,7 @@
             icon-name="utility:back"
             onclick={handleBackToEdit}
             disabled={isProcessing}
-            class="slds-m-right_small"
+            class="footer-action footer-action--secondary"
           ></lightning-button>
           <lightning-button
             variant="brand"
@@ -673,6 +679,7 @@
             icon-name="utility:check"
             onclick={handleConfirmSave}
             disabled={isProcessing}
+            class="footer-action"
           ></lightning-button>
         </template>
         <template lwc:else>
@@ -681,7 +688,7 @@
             label="Cancel"
             onclick={handleClose}
             disabled={isProcessing}
-            class="slds-m-right_small"
+            class="footer-action footer-action--secondary"
           ></lightning-button>
           <lightning-button
             variant="brand"
@@ -689,6 +696,7 @@
             icon-name="utility:sparkles"
             onclick={handleAnalyze}
             disabled={analyzeButtonDisabled}
+            class="footer-action"
           ></lightning-button>
         </template>
       </footer>

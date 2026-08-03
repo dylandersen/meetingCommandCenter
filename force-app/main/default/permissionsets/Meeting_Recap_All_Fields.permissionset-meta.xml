@@ -203,6 +203,10 @@
         <visibility>Visible</visibility>
     </tabSettings>
     <tabSettings>
+        <tab>Meeting_Command_Center_Mobile</tab>
+        <visibility>Visible</visibility>
+    </tabSettings>
+    <tabSettings>
         <tab>Meeting_Recap__c</tab>
         <visibility>Visible</visibility>
     </tabSettings>

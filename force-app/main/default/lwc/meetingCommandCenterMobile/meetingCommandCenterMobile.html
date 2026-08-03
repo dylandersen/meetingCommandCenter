@@ -1,0 +1,439 @@
+<template>
+  <main class="mobile-shell" aria-busy={isLoading}>
+    <div class="sr-announcer" aria-live="polite" aria-atomic="true">
+      {resultAnnouncement}
+    </div>
+
+    <header class="app-header">
+      <div class="app-header__identity">
+        <span class="app-header__icon" aria-hidden="true">
+          <lightning-icon
+            icon-name="utility:event"
+            size="small"
+            alternative-text=""
+          ></lightning-icon>
+        </span>
+        <div>
+          <p class="eyebrow">Agentforce</p>
+          <h1>Meeting Command Center</h1>
+        </div>
+      </div>
+      <button
+        type="button"
+        class="icon-button"
+        title="Refresh meetings"
+        aria-label="Refresh meetings"
+        onclick={handleRefresh}
+        disabled={isLoading}
+      >
+        <lightning-icon
+          icon-name="utility:refresh"
+          size="x-small"
+          alternative-text=""
+        ></lightning-icon>
+      </button>
+    </header>
+
+    <section class="date-panel" aria-labelledby="selected-date-heading">
+      <div class="date-panel__heading">
+        <div>
+          <p class="eyebrow">{dateContextLabel}</p>
+          <h2 id="selected-date-heading">{formattedDate}</h2>
+        </div>
+        <button
+          type="button"
+          class="today-button"
+          onclick={handleGoToToday}
+          disabled={isToday}
+        >
+          Today
+        </button>
+      </div>
+
+      <div class="date-controls" aria-label="Choose meeting date">
+        <button
+          type="button"
+          class="date-arrow"
+          title="Previous day"
+          aria-label="Previous day"
+          onclick={handlePreviousDay}
+        >
+          <lightning-icon
+            icon-name="utility:chevronleft"
+            size="x-small"
+            alternative-text=""
+          ></lightning-icon>
+        </button>
+        <lightning-input
+          class="date-picker"
+          type="date"
+          label="Meeting date"
+          variant="label-hidden"
+          value={selectedDateValue}
+          onchange={handleDateChange}
+        ></lightning-input>
+        <button
+          type="button"
+          class="date-arrow"
+          title="Next day"
+          aria-label="Next day"
+          onclick={handleNextDay}
+        >
+          <lightning-icon
+            icon-name="utility:chevronright"
+            size="x-small"
+            alternative-text=""
+          ></lightning-icon>
+        </button>
+      </div>
+    </section>
+
+    <template lwc:if={isLoading}>
+      <section class="loading-state" role="status" aria-label="Loading meetings">
+        <lightning-spinner
+          alternative-text="Loading meetings"
+          size="small"
+        ></lightning-spinner>
+        <div class="skeleton-card"></div>
+        <div class="skeleton-card"></div>
+        <div class="skeleton-card"></div>
+      </section>
+    </template>
+
+    <template lwc:elseif={error}>
+      <section class="message-card message-card--error" role="alert">
+        <span class="message-card__icon">
+          <lightning-icon
+            icon-name="utility:error"
+            size="small"
+            alternative-text="Error"
+          ></lightning-icon>
+        </span>
+        <div class="message-card__content">
+          <h2>Meetings could not load</h2>
+          <p>{error}</p>
+          <button type="button" class="action-button" onclick={loadEvents}>
+            Try again
+          </button>
+        </div>
+      </section>
+    </template>
+
+    <template lwc:elseif={hasEvents}>
+      <section class="agenda" aria-labelledby="agenda-heading">
+        <div class="agenda__summary">
+          <div>
+            <p class="eyebrow">Your agenda</p>
+            <h2 id="agenda-heading">{meetingCountLabel}</h2>
+          </div>
+          <span class="duration-chip">
+            <lightning-icon
+              icon-name="utility:clock"
+              size="xx-small"
+              alternative-text=""
+            ></lightning-icon>
+            {totalMeetingTimeLabel}
+          </span>
+        </div>
+
+        <div class="meeting-list" role="list">
+          <template for:each={events} for:item="meeting">
+            <article key={meeting.Id} class="meeting-card" role="listitem">
+              <div class="meeting-card__content">
+                <div class="meeting-card__topline">
+                  <div class="meeting-time">
+                    <span class="meeting-time__start"
+                      >{meeting.formattedStartTime}</span
+                    >
+                    <span class="meeting-time__duration"
+                      >{meeting.durationText}</span
+                    >
+                  </div>
+                  <span class={meeting.statusClass}>{meeting.statusLabel}</span>
+                </div>
+
+                <button
+                  type="button"
+                  class="meeting-title"
+                  data-event-id={meeting.Id}
+                  aria-label={meeting.eventActionLabel}
+                  onclick={handleEventClick}
+                >
+                  {meeting.Subject}
+                </button>
+
+                <p class="meeting-window">
+                  {meeting.formattedStartTime} – {meeting.formattedEndTime}
+                </p>
+
+                <dl class="meeting-details">
+                  <template lwc:if={meeting.whoName}>
+                    <div class="detail-row">
+                      <dt>
+                        <lightning-icon
+                          icon-name="utility:user"
+                          size="xx-small"
+                          alternative-text="Contact"
+                        ></lightning-icon>
+                      </dt>
+                      <dd>
+                        <button
+                          type="button"
+                          class="detail-link"
+                          data-contact-id={meeting.whoId}
+                          aria-label={meeting.contactActionLabel}
+                          onclick={handleContactClick}
+                        >
+                          {meeting.whoName}
+                        </button>
+                      </dd>
+                    </div>
+                  </template>
+
+                  <template lwc:if={meeting.accountName}>
+                    <div class="detail-row">
+                      <dt>
+                        <lightning-icon
+                          icon-name="utility:company"
+                          size="xx-small"
+                          alternative-text="Account"
+                        ></lightning-icon>
+                      </dt>
+                      <dd>
+                        <button
+                          type="button"
+                          class="detail-link"
+                          data-account-id={meeting.accountId}
+                          aria-label={meeting.accountActionLabel}
+                          onclick={handleAccountClick}
+                        >
+                          {meeting.accountName}
+                        </button>
+                      </dd>
+                    </div>
+                  </template>
+
+                  <div class="detail-row">
+                    <dt>
+                      <lightning-icon
+                        icon-name="utility:location"
+                        size="xx-small"
+                        alternative-text="Location"
+                      ></lightning-icon>
+                    </dt>
+                    <dd>
+                      <button
+                        type="button"
+                        class="detail-link"
+                        data-location-trigger="true"
+                        data-event-id={meeting.Id}
+                        aria-label={meeting.locationActionLabel}
+                        onclick={handleOpenLocationModal}
+                      >
+                        {meeting.locationLabel}
+                      </button>
+                    </dd>
+                  </div>
+                </dl>
+
+                <div class="meeting-actions">
+                  <template lwc:if={meeting.canCreateRecap}>
+                    <button
+                      type="button"
+                      class="action-button action-button--brand"
+                      data-event-id={meeting.Id}
+                      onclick={handleRecapClick}
+                    >
+                      <lightning-icon
+                        icon-name="utility:magicwand"
+                        size="xx-small"
+                        alternative-text=""
+                      ></lightning-icon>
+                      Recap meeting
+                    </button>
+                  </template>
+
+                  <template lwc:elseif={meeting.canViewRecap}>
+                    <button
+                      type="button"
+                      class="action-button"
+                      data-event-id={meeting.Id}
+                      onclick={handleViewRecap}
+                    >
+                      <lightning-icon
+                        icon-name="utility:success"
+                        size="xx-small"
+                        alternative-text=""
+                      ></lightning-icon>
+                      View recap
+                    </button>
+                  </template>
+
+                  <template lwc:elseif={meeting.showLiveActions}>
+                    <button
+                      type="button"
+                      class="action-button"
+                      data-event-id={meeting.Id}
+                      onclick={handleViewPrep}
+                    >
+                      View prep
+                    </button>
+                    <button
+                      type="button"
+                      class="action-button action-button--brand"
+                      data-event-id={meeting.Id}
+                      onclick={handleRecapClick}
+                    >
+                      Recap
+                    </button>
+                  </template>
+
+                  <template lwc:elseif={meeting.canPrep}>
+                    <button
+                      type="button"
+                      class="action-button action-button--brand"
+                      data-event-id={meeting.Id}
+                      onclick={handlePrepClick}
+                    >
+                      <lightning-icon
+                        icon-name="utility:forward"
+                        size="xx-small"
+                        alternative-text=""
+                      ></lightning-icon>
+                      Prep for meeting
+                    </button>
+                  </template>
+                </div>
+              </div>
+            </article>
+          </template>
+        </div>
+      </section>
+    </template>
+
+    <template lwc:elseif={showEmptyState}>
+      <section class="empty-state">
+        <span class="empty-state__icon" aria-hidden="true">
+          <lightning-icon
+            icon-name="standard:event"
+            size="medium"
+            alternative-text=""
+          ></lightning-icon>
+        </span>
+        <h2>{emptyStateTitle}</h2>
+        <p>{emptyStateMessage}</p>
+        <div class="empty-state__actions">
+          <button
+            type="button"
+            class="action-button action-button--brand"
+            onclick={handleCreateMeeting}
+            disabled={isCreatingMeeting}
+          >
+            {createMeetingLabel}
+          </button>
+          <button
+            type="button"
+            class="action-button"
+            onclick={handleViewCalendar}
+          >
+            View calendar
+          </button>
+        </div>
+      </section>
+    </template>
+
+    <footer lwc:if={hasEvents} class="mobile-footer">
+      <button
+        type="button"
+        class="create-button"
+        onclick={handleCreateMeeting}
+        disabled={isCreatingMeeting}
+      >
+        <lightning-icon
+          icon-name="utility:add"
+          size="x-small"
+          alternative-text=""
+        ></lightning-icon>
+        {createMeetingLabel}
+      </button>
+    </footer>
+
+    <c-meeting-recap-modal
+      lwc:if={showRecapModal}
+      event-id={selectedEventId}
+      event-subject={selectedEventSubject}
+      account-name={selectedEventAccountName}
+      account-id={selectedEventAccountId}
+      contact-name={selectedEventContactName}
+      contact-id={selectedEventContactId}
+      onclose={handleModalClose}
+      onsave={handleRecapSave}
+    ></c-meeting-recap-modal>
+
+    <template lwc:if={showLocationModal}>
+      <section
+        class="mobile-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="location-modal-heading"
+        onkeydown={handleLocationModalKeyDown}
+      >
+        <div class="mobile-modal__sheet">
+          <header class="mobile-modal__header">
+            <div>
+              <p class="eyebrow">Update event</p>
+              <h2 id="location-modal-heading">{selectedLocationTitle}</h2>
+            </div>
+            <button
+              type="button"
+              class="icon-button"
+              title="Close location dialog"
+              aria-label="Close location dialog"
+              onclick={handleCloseLocationModal}
+              disabled={isSavingLocation}
+            >
+              <lightning-icon
+                icon-name="utility:close"
+                size="x-small"
+                alternative-text=""
+              ></lightning-icon>
+            </button>
+          </header>
+
+          <div class="mobile-modal__body">
+            <lightning-input
+              data-location-input
+              type="text"
+              label="Location"
+              value={locationDraft}
+              placeholder="Room, video link, or address"
+              onchange={handleLocationChange}
+              disabled={isSavingLocation}
+              required
+            ></lightning-input>
+          </div>
+
+          <footer class="mobile-modal__footer">
+            <button
+              type="button"
+              class="action-button"
+              onclick={handleCloseLocationModal}
+              disabled={isSavingLocation}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              class="action-button action-button--brand"
+              onclick={handleSaveLocation}
+              disabled={locationSaveDisabled}
+            >
+              Save location
+            </button>
+          </footer>
+        </div>
+      </section>
+      <div class="mobile-backdrop"></div>
+    </template>
+  </main>
+</template>

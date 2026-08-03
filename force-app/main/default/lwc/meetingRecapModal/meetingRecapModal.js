@@ -80,6 +80,7 @@ export default class MeetingRecapModal extends NavigationMixin(
   processingInterval = null;
 
   @track isAccountLoading = false;
+  hasFocusedDialog = false;
 
   connectedCallback() {
     // Contact info is reliable from the parent and can be shown immediately.
@@ -464,6 +465,52 @@ export default class MeetingRecapModal extends NavigationMixin(
     const textarea = this.template.querySelector("textarea");
     if (textarea && textarea.value !== this.recapText) {
       textarea.value = this.recapText || "";
+    }
+
+    if (!this.hasFocusedDialog) {
+      this.hasFocusedDialog = true;
+      const initialTarget =
+        this.template.querySelector(".voice-recording-button") ||
+        this.template.querySelector(".slds-modal__close");
+      initialTarget?.focus();
+    }
+  }
+
+  handleDialogKeyDown(event) {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      this.handleClose();
+      return;
+    }
+
+    if (event.key !== "Tab") {
+      return;
+    }
+
+    const selector = [
+      "a[href]",
+      "button:not([disabled])",
+      "textarea:not([disabled])",
+      "lightning-button:not([disabled])",
+      "lightning-input:not([disabled])",
+      "lightning-textarea:not([disabled])",
+      "lightning-combobox:not([disabled])",
+      "lightning-record-picker:not([disabled])",
+      "lightning-input-rich-text:not([disabled])"
+    ].join(",");
+    const focusableElements = Array.from(
+      this.template.querySelectorAll(selector)
+    );
+    const firstElement = focusableElements[0];
+    const lastElement = focusableElements[focusableElements.length - 1];
+    const activeElement = this.template.activeElement;
+
+    if (event.shiftKey && activeElement === firstElement) {
+      event.preventDefault();
+      lastElement?.focus();
+    } else if (!event.shiftKey && activeElement === lastElement) {
+      event.preventDefault();
+      firstElement?.focus();
     }
   }
 

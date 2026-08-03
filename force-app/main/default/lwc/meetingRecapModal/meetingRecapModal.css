@@ -48,13 +48,11 @@
 /* Full Width Info Callout */
 .info-callout-full-width {
   background-color: var(--slds-g-color-info-base-95, #eef4ff);
-  border-left: 4px solid var(--slds-g-color-info-base-50, #0176d3);
+  border: 1px solid var(--slds-g-color-info-base-80, #aacbff);
   padding: var(--slds-spacing-small, 0.75rem) var(--slds-spacing-medium, 1rem);
-  margin-left: calc(-1 * var(--slds-spacing-medium, 1rem));
-  margin-right: calc(-1 * var(--slds-spacing-medium, 1rem));
-  margin-top: calc(-1 * var(--slds-spacing-medium, 1rem));
+  margin-top: 0;
   margin-bottom: var(--slds-spacing-medium, 1rem);
-  border-radius: 0;
+  border-radius: 0.5rem;
 }
 
 .info-callout-full-width .slds-media {
@@ -71,6 +69,21 @@
   gap: var(--slds-spacing-small, 0.75rem);
   width: 100%;
   text-align: center;
+}
+
+.voice-capture-panel {
+  padding: var(--slds-spacing-medium, 1rem);
+  border: 1px solid var(--slds-g-color-border-base-1, #e5e5e5);
+  border-radius: 0.75rem;
+  background: var(--slds-g-color-neutral-base-98, #fafaf9);
+}
+
+.voice-capture-label {
+  margin: 0;
+  color: var(--slds-g-color-neutral-base-20, #2e2e2e);
+  font-size: 0.875rem;
+  font-weight: 700;
+  line-height: 1.4;
 }
 
 /* Waveform Animation */
@@ -607,5 +620,129 @@
 @media (max-width: 40rem) {
   .task-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+/* Full-screen, voice-first experience in the Salesforce mobile app. */
+@media (max-width: 48em) {
+  .modal-centered {
+    inset: 0;
+    width: 100%;
+    height: 100dvh;
+    max-height: 100dvh;
+    padding: 0;
+    align-items: stretch;
+    justify-content: flex-start;
+  }
+
+  .modal-centered .slds-modal__container {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+    height: 100dvh;
+    max-height: 100dvh;
+    margin: 0;
+    padding: 0;
+  }
+
+  .modal-centered .slds-modal__header {
+    flex: 0 0 auto;
+    padding-top: max(1rem, env(safe-area-inset-top));
+    padding-right: 4.25rem;
+    padding-bottom: 0.875rem;
+    padding-left: 1rem;
+    border-radius: 0;
+    text-align: left;
+  }
+
+  .modal-centered .slds-modal__title {
+    font-size: 1.125rem;
+  }
+
+  .modal-centered .slds-modal__close {
+    top: max(0.625rem, env(safe-area-inset-top));
+    right: 0.75rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    border: 1px solid var(--slds-g-color-border-base-2, #c9c9c9);
+    border-radius: 50%;
+    background: var(--slds-g-color-neutral-base-100, #ffffff);
+    --slds-c-icon-color-foreground-default: var(
+      --slds-g-color-neutral-base-20,
+      #2e2e2e
+    );
+  }
+
+  .modal-centered .slds-modal__content {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none;
+    padding: 1rem;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    border-radius: 0;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .modal-centered .slds-modal__footer {
+    flex: 0 0 auto;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+    padding: 0.75rem 1rem max(0.75rem, env(safe-area-inset-bottom));
+    border-radius: 0;
+    background: var(--slds-g-color-neutral-base-100, #ffffff);
+    box-shadow: 0 -1px 4px rgba(0, 0, 0, 0.08);
+  }
+
+  .modal-centered .footer-action {
+    display: block;
+    width: 100%;
+    margin: 0;
+  }
+
+  .info-callout-full-width {
+    margin-right: 0;
+    margin-left: 0;
+  }
+
+  .voice-capture-panel {
+    padding: 1rem;
+  }
+
+  .voice-recording-button {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .account-contact-group {
+    grid-template-columns: 1fr;
+  }
+
+  .modal-centered .slds-textarea {
+    min-height: 9rem;
+    font-size: 1rem;
+    line-height: 1.5;
+  }
+
+  .task-card,
+  .preview-card {
+    padding: 0.75rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .agentforce-icon-pulse,
+  .agentforce-loading-icon,
+  .waveform-bar,
+  .field-skeleton,
+  .summary-label-gradient {
+    animation: none;
   }
 }
